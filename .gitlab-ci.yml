@@ -1,0 +1,16 @@
+image: registry.gitlab.com/luigi311/aomenc-arguments-docker:latest
+
+stages:
+  - test
+
+validation:
+  stage: test
+  script:
+    # Test to make sure ffmpeg and aomenc are in the image
+    - ffmpeg -version
+    - aomenc --help
+    # Grab first two arguments to test only
+    - mv arguments arguments.temp
+    - head -n 2 arguments.temp > arguments
+    # Test actual scripts
+    - ./run.sh
