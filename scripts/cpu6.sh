@@ -11,7 +11,6 @@ if [[ $1 = "baseline" ]]; then
     SIZE=$(du "$3/$1/$1".mkv | awk '{print $1}') &&
     echo -n "baseline,$SIZE,$FIRST,$SECOND" > "$3/$1/$1".stats
 else
-    echo "Main"
     FIRST=$(env time --format="%e" bash -c " $BASE1P --$1=$2 --fpf=$3/$1/$1$2.log -o /dev/null - 2>&1" 2>&1 | awk '{ print $1 }') &&
     SECOND=$(env time --format="%e" bash -c " $BASE2P --$1=$2 --fpf=$3/$1/$1$2.log -o $3/$1/$1$2.mkv - 2>&1" 2>&1 | awk '{ print $1 }') &&
     rm -f "$3/$1/$1$2".log &&
