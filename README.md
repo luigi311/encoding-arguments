@@ -1,3 +1,42 @@
 # aomenc-arguments
+Utilize gnu parallel to test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass
+and second pass, vmaf score and put them in a csv.
 
-Utilize gnu parallel to test multiple aomenc flags to see how it will affect file size and vmaf. 
+# Usage
+```bash
+$ ./run.sh [options]
+```
+# Example
+```bash
+$ ./run.sh --flags arguments --encworkers 12
+```
+# Options
+```bash
+General Options:
+
+         -i/--input ["file"]             Video source to use (default video.mkv)
+         -o/--output ["folder"]          Output folder to place all encoded videos and stats files (default output)   
+         -c/--csv ["file"]               CSV file to output final stats for all encodes to (default stats.csv)        
+         -e/--encworkers [number]        Number of encodes to run simultaneously (defaults cpu threads/aomenc threads)
+         -v/--vmafworkers [number]       Number of vmaf calculations to run simultaneously (defaults 3)
+         --resume                        Resume option for parallel, will use encoding.log and vmaf.log 
+                                         Does not take into account different encoding settings (default false)       
+
+Encoding Settings:
+         -f/--flags ["file"]             File with different flags to test. Each line represents
+                                         a seperate test (default arguments)
+         -t/--threads [number]           Amount of aomenc threads each encode should use (default 4)
+         --cq [number]                   Use q mode and set cq-level to number provided (default 50)
+         --vbr [number]                  Use vbr mode and set target-bitrate to number provided
+         --cpu [number]                  Set cpu-used encoding preset used by aomenc (default 6)
+```
+
+# Format for arguments
+Each test will run consist of one line of the arguments file provided. Insert flags as you would in aomenc in the agument file such as 
+```
+--aq-mode=3
+```  
+If you want to test multiple flags on a single encode put them all in a single line like so
+```
+--bias-pct=0 --tune-content=screen --aq-mode=3
+```
