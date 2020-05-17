@@ -1,84 +1,81 @@
-bias-pct 100
-bias-pct 80
-bias-pct 60
-bias-pct 40
-bias-pct 20
-bias-pct 0
-tune-content default
-tune-content screen
-aq-mode 1
-aq-mode 2
-aq-mode 3
-deltaq-mode 0
-deltaq-mode 2
-enable-keyframe-filtering 0
-tune vmaf
-tune vmaf_with_preprocessing
-tune vmaf_without_preprocessing
-kf-max-dist 120
-kf-max-dist 240
-kf-max-dist 360
-kf-max-dist 480
-frame-boost 1
-set-tier-mask 1
-sb-size dynamic
-sb-size 64
-sb-size 128
-max-reference-frames 3
-max-reference-frames 4
-max-reference-frames 5
-max-reference-frames 6
-lag-in-frames 11
-lag-in-frames 19
-lag-in-frames 35
-gf-cbr-boost 0
-gf-cbr-boost 20
-gf-cbr-boost 40
-gf-cbr-boost 60
-gf-cbr-boost 80
-gf-cbr-boost 100
-min-partition-size 4
-min-partition-size 8
-min-partition-size 16
-min-partition-size 32
-min-partition-size 64
-min-partition-size 128
-max-partition-size 4
-max-partition-size 8
-max-partition-size 16
-max-partition-size 32
-max-partition-size 64
-max-partition-size 128
-enable-chroma-deltaq 1
-disable-trellis-quant 0
-disable-trellis-quant 1
-disable-trellis-quant 2
-frame-parallel 1
-coeff-cost-upd-freq 0
-coeff-cost-upd-freq 1
-coeff-cost-upd-freq 2
-mode-cost-upd-freq 0
-mode-cost-upd-freq 1
-mode-cost-upd-freq 2
-mv-cost-upd-freq 0
-mv-cost-upd-freq 1
-mv-cost-upd-freq 2
-mv-cost-upd-freq 3
-cdf-update-mode 0
-cdf-update-mode 2
-num-tile-groups 2
-num-tile-groups 3
-denoise-noise-level 0
-denoise-noise-level 5
-reduced-reference-set 1
-enable-ref-frame-mvs 0
-min-cr 10
-min-cr 20
-min-cr 30
-min-cr 40
-min-cr 50
-row-mt 0
-enable-qm 1
-cdf-update-mode 0
-cdf-update-mode 2
 baseline
+--bias-pct=100
+--bias-pct=80
+--bias-pct=60
+--bias-pct=40
+--bias-pct=20
+--bias-pct=0
+--tune-content=default
+--tune-content=screen
+--aq-mode=1
+--aq-mode=2
+--aq-mode=3
+--deltaq-mode=0
+--deltaq-mode=2
+--enable-keyframe-filtering=0
+--kf-max-dist=120
+--kf-max-dist=240
+--kf-max-dist=360
+--kf-max-dist=480
+--frame-boost=1
+--set-tier-mask=1
+--sb-size=dynamic
+--sb-size=64
+--sb-size=128
+--max-reference-frames=3
+--max-reference-frames=4
+--max-reference-frames=5
+--max-reference-frames=6
+--lag-in-frames=11
+--lag-in-frames=19
+--lag-in-frames=35
+--gf-cbr-boost=0
+--gf-cbr-boost=20
+--gf-cbr-boost=40
+--gf-cbr-boost=60
+--gf-cbr-boost=80
+--gf-cbr-boost=100
+--min-partition-size=4
+--min-partition-size=8
+--min-partition-size=16
+--min-partition-size=32
+--min-partition-size=64
+--min-partition-size=128
+--max-partition-size=4
+--max-partition-size=8
+--max-partition-size=16
+--max-partition-size=32
+--max-partition-size=64
+--max-partition-size=128
+--enable-chroma-deltaq=1
+--disable-trellis-quant=0
+--disable-trellis-quant=1
+--disable-trellis-quant=2
+--frame-parallel=1
+--coeff-cost-upd-freq=0
+--coeff-cost-upd-freq=1
+--coeff-cost-upd-freq=2
+--mode-cost-upd-freq=0
+--mode-cost-upd-freq=1
+--mode-cost-upd-freq=2
+--mv-cost-upd-freq=0
+--mv-cost-upd-freq=1
+--mv-cost-upd-freq=2
+--mv-cost-upd-freq=3
+--cdf-update-mode=0
+--cdf-update-mode=2
+--num-tile-groups=2
+--num-tile-groups=3
+--denoise-noise-level=0
+--denoise-noise-level=5
+--reduced-reference-set=1
+--enable-ref-frame-mvs=0
+--min-cr=10
+--min-cr=20
+--min-cr=30
+--min-cr=40
+--min-cr=50
+--row-mt=0
+--enable-qm=1
+--cdf-update-mode=0
+--cdf-update-mode=2
