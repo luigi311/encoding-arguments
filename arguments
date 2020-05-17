@@ -79,3 +79,4 @@ baseline
 --enable-qm=1
 --cdf-update-mode=0
 --cdf-update-mode=2
+--bias-pct=0 --tune-content=screen --aq-mode=3
