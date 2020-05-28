@@ -2,15 +2,15 @@
 Utilize gnu parallel to test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass
 and second pass, vmaf score and put them in a csv.
 
-# Usage
+## Usage
 ```bash
 $ ./run.sh [options]
 ```
-# Example
+## Example
 ```bash
 $ ./run.sh --flags arguments --encworkers 12
 ```
-# Options
+## Options
 ```bash
 General Options:
 
@@ -31,7 +31,7 @@ Encoding Settings:
          --cpu [number]                  Set cpu-used encoding preset used by aomenc (default 6)
 ```
 
-# Format for arguments
+## Format for arguments
 Each test will run consist of one line of the arguments file provided. Insert flags as you would in aomenc in the agument file such as 
 ```
 --aq-mode=3
