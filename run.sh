@@ -171,5 +171,5 @@ fi
 echo "Encoding" &&
 parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" --flags {} < "$FLAGS"
 echo "Calculating VMAF" &&
-find "$OUTPUT" -name "*.mkv" | parallel -j "$VMAF_WORKERS" --joblog vmaf.log $RESUME --bar  scripts/calculate_vmaf.sh "$INPUT" {} &&
+find "$OUTPUT" -name "*.webm" | parallel -j "$VMAF_WORKERS" --joblog vmaf.log $RESUME --bar  scripts/calculate_vmaf.sh "$INPUT" {} &&
 cat "$OUTPUT"/*/*.stats > "$CSV"
