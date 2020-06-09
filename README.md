@@ -1,4 +1,5 @@
-# aomenc-arguments
+# aomenc-arguments  
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/9d73582417664408a6f0488555c6f063)](https://www.codacy.com/manual/luigi311/aomenc-arguments?utm_source=gitlab.com&amp;utm_medium=referral&amp;utm_content=Luigi311/aomenc-arguments&amp;utm_campaign=Badge_Grade)  
 Utilize gnu parallel to test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass
 and second pass, vmaf score and put them in a csv.
 
