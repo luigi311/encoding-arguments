@@ -9,7 +9,7 @@ code_quality:
     paths: [gl-code-quality-report.json]
 
 validation:
-  image: registry.gitlab.com/luigi311/aomenc-arguments-docker:latest
+  image: registry.gitlab.com/luigi311/av1-docker:latest
   stage: test
   script:
     # Grab first two arguments to test only
