@@ -128,4 +128,4 @@ FIRST=$(env time --format="Sec %e" bash -c " $BASE --pass=1 $FLAGS --fpf=$OUTPUT
 SECOND=$(env time --format="Sec %e" bash -c " $BASE --pass=2 $FLAGS --fpf=$OUTPUT/$FOLDER/$FOLDER.log -o $OUTPUT/$FOLDER/$FOLDER.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
 rm -f "$OUTPUT/$FOLDER/$FOLDER".log &&
 SIZE=$(du "$OUTPUT/$FOLDER/$FOLDER".webm | awk '{print $1}') &&
-echo -n "$FLAGSSTAT,$SIZE,$FIRST,$SECOND" > "$OUTPUT/$FOLDER/$FOLDER".stats
+echo -n "$FLAGSSTAT,$SIZE,$FIRST,$SECOND," > "$OUTPUT/$FOLDER/$FOLDER".stats
