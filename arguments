@@ -7,6 +7,9 @@ baseline
 --bias-pct=0
 --tune-content=default
 --tune-content=screen
+--tune=vmaf
+--tune=vmaf_with_preprocessing
+--tune=vmaf_without_preprocessing
 --aq-mode=1
 --aq-mode=2
 --aq-mode=3

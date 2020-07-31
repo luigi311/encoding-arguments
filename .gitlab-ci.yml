@@ -11,6 +11,9 @@ code_quality:
 validation:
   image: registry.gitlab.com/luigi311/av1-docker:latest
   stage: test
+  before_script:
+    # Install Dependencies
+    - apt-get update && apt-get install -y parallel
   script:
     # Grab first two arguments to test only
     - mv arguments arguments.temp

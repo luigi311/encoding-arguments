@@ -107,7 +107,9 @@ while :; do
     shift
 done
 
-FOLDER=$(echo "$FLAGS" | sed ' s/--//g; s/=//g; s/ //g')
+FOLDER1=$(echo "$FLAGS" | sed ' s/--//g; s/=//g; s/ //g')
+FOLDER=${FOLDER1: -120}
+#echo $FOLDER
 FLAGSSTAT="$FLAGS"
 
 if [ "$CQ" != "" ]; then
