@@ -1,17 +1,23 @@
-# aomenc-arguments  
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/9d73582417664408a6f0488555c6f063)](https://www.codacy.com/manual/luigi311/aomenc-arguments?utm_source=gitlab.com&amp;utm_medium=referral&amp;utm_content=Luigi311/aomenc-arguments&amp;utm_campaign=Badge_Grade)  
+# aomenc-arguments #
+
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/9d73582417664408a6f0488555c6f063)](https://www.codacy.com/manual/luigi311/aomenc-arguments?utm_source=gitlab.com&utm_medium=referral&utm_content=Luigi311/aomenc-arguments&utm_campaign=Badge_Grade)  
 Utilize gnu parallel to test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass
 and second pass, vmaf score and put them in a csv.
 
-## Usage
+## Usage ##
+
 ```bash
-$ ./run.sh [options]
+./run.sh [options]
 ```
-## Example
+
+## Example ##
+
 ```bash
-$ ./run.sh --flags arguments --encworkers 12
+./run.sh --flags arguments --encworkers 12
 ```
-## Options
+
+## Options ##
+
 ```bash
 General Options:
 
@@ -32,12 +38,24 @@ Encoding Settings:
          --cpu [number]                  Set cpu-used encoding preset used by aomenc (default 6)
 ```
 
-## Format for arguments
+## Format for arguments ##
+
 Each test will run consist of one line of the arguments file provided. Insert flags as you would in aomenc in the agument file such as 
-```
+
+```bash
 --aq-mode=3
-```  
-If you want to test multiple flags on a single encode put them all in a single line like so
 ```
+
+If you want to test multiple flags on a single encode put them all in a single line like so
+
+```bash
 --bias-pct=0 --tune-content=screen --aq-mode=3
 ```
+
+## Requirements ##
+The following packages are required
+* aomenc
+* parallel
+* time
+* awk
+* grep
