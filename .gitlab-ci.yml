@@ -13,7 +13,7 @@ validation:
   stage: test
   before_script:
     # Install Dependencies
-    - apt-get update && apt-get install -y parallel
+    - apt-get update && apt-get install -y parallel time gawk
   script:
     # Grab first two arguments to test only
     - mv arguments arguments.temp
@@ -24,3 +24,4 @@ validation:
     # Test actual scripts
     - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --cq 60 --cpu 6
     - cat stats.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi

@@ -108,7 +108,11 @@ while :; do
 done
 
 FOLDER1=$(echo "$FLAGS" | sed ' s/--//g; s/=//g; s/ //g')
-FOLDER=${FOLDER1: -120}
+if [ "${#FOLDER1}" -ge 120 ]; then
+    FOLDER=${FOLDER1: -120}
+else
+    FOLDER="$FOLDER1"
+fi
 #echo $FOLDER
 FLAGSSTAT="$FLAGS"
 
