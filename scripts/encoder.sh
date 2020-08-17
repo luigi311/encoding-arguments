@@ -29,7 +29,8 @@ while :; do
             printf "\t -o/--output [\"folder\"]\t\t Output folder to place encoded videos and stats files (default output)\n"
             printf "\t -f/--flags [\"string\"]\t\t Flags to test, surround in quotes to prevent issues (default baseline)\n"
             printf "\t -t/--threads [number]\t\t Amount of threads to use (default 4)\n"
-            printf "\t --cq [number]\t\t\t Use q mode and set cq-level to number provided (default 50)\n"
+            printf "\t --q [number]\t\t\t Use q mode and set cq-level to number provided (default 50)\n"
+            printf "\t --cq [number]\t\t\t Use cq mode and set cq-level to number provided\n"
             printf "\t --vbr [number]\t\t\t Use vbr mode and set target-bitrate to number provided\n"
             printf "\t --cpu [number]\t\t\t Set cpu-used encoding preset (default 6)\n"
             exit 0
@@ -66,19 +67,30 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --q)
+            if [ "$VBR" != "" ] || [ "$CQ" != "" ]; then
+                die "Can not set VBR, CQ and q at the same time"
+            elif [ "$2" ]; then
+                Q="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
         --cq)
-            if [ "$VBR" != "" ]; then
-                die "Can not set both VBR and CQ"
+            if [ "$VBR" != "" ] || [ "$Q" != "" ]; then
+                die "Can not set VBR, CQ and q at the same time"
             elif [ "$2" ]; then
                 CQ="$2"
+                die "CQ is not properly setup"
                 shift
             else
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
         --vbr)
-            if [ "$CQ" != "" ]; then
-                die "Can not set both VBR and CQ"
+            if [ "$CQ" != "" ] || [ "$Q" != "" ]; then
+                die "Can not set VBR, CQ and q at the same time"
             elif [ "$2" ]; then
                 VBR="$2"
                 shift
@@ -113,25 +125,31 @@ if [ "${#FOLDER1}" -ge 120 ]; then
 else
     FOLDER="$FOLDER1"
 fi
-#echo $FOLDER
 FLAGSSTAT="$FLAGS"
 
-if [ "$CQ" != "" ]; then
-    QUALITY="--end-usage=q --cq-level=$CQ"
+if [ "$Q" != "" ]; then
+    QUALITY="--end-usage=q --cq-level=$Q"
+    TYPE="q${Q}"
+elif [ "$CQ" != "" ]; then
+    QUALITY="--end-usage=cq --cq-level=$CQ"
+    TYPE="cq${CQ}"
 elif [ "$VBR" != "" ]; then
     QUALITY="--end-usage=vbr --target-bitrate=$VBR"
+    TYPE="vbr${VBR}"
 else
     QUALITY="--end-usage=q --cq-level=50"
+    TYPE="q50"
 fi
 
 if [ "$FLAGS" == "baseline" ]; then
     FLAGS=""
 fi
 
-mkdir -p "$OUTPUT/$FOLDER"
+mkdir -p "$OUTPUT/${FOLDER}_${TYPE}"
 BASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le -f yuv4mpegpipe - | aomenc --passes=2 --threads=$THREADS -b 10 --cpu-used=$CPU $QUALITY"
-FIRST=$(env time --format="Sec %e" bash -c " $BASE --pass=1 $FLAGS --fpf=$OUTPUT/$FOLDER/$FOLDER.log -o /dev/null - > /dev/null 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-SECOND=$(env time --format="Sec %e" bash -c " $BASE --pass=2 $FLAGS --fpf=$OUTPUT/$FOLDER/$FOLDER.log -o $OUTPUT/$FOLDER/$FOLDER.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-rm -f "$OUTPUT/$FOLDER/$FOLDER".log &&
-SIZE=$(du "$OUTPUT/$FOLDER/$FOLDER".webm | awk '{print $1}') &&
-echo -n "$FLAGSSTAT,$SIZE,$FIRST,$SECOND," > "$OUTPUT/$FOLDER/$FOLDER".stats
+FIRST=$(env time --format="Sec %e" bash -c " $BASE --pass=1 $FLAGS --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log -o /dev/null - > /dev/null 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+SECOND=$(env time --format="Sec %e" bash -c " $BASE --pass=2 $FLAGS --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log -o $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE".log &&
+SIZE=$(du "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE".webm | awk '{print $1}') &&
+BITRATE=$(ffprobe -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE".webm 2>&1 | awk ' /bitrate:/ { print $(NF-1) }')
+echo -n "$FLAGSSTAT,$SIZE,$TYPE,$BITRATE,$FIRST,$SECOND," > "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE".stats

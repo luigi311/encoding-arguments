@@ -1,3 +1,16 @@
+default:
+  image: registry.gitlab.com/luigi311/av1-docker:latest
+  before_script:
+    # Install Dependencies
+    - apt-get update && apt-get install -y parallel time gawk jq python3 python3-pip python-is-python3
+    - pip3 install numpy
+    # Grab first two arguments to test only
+    - mv arguments arguments.temp
+    - head -n 2 arguments.temp > arguments
+    # Download test videos from SVT-AV1
+    - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
+    - tar xf video.tar.gz
+
 stages:
   - test
 
@@ -5,23 +18,25 @@ include:
   - template: Code-Quality.gitlab-ci.yml
 
 code_quality:
+  inherit:
+    default: false
   artifacts:
     paths: [gl-code-quality-report.json]
+  allow_failure: true
 
 validation:
-  image: registry.gitlab.com/luigi311/av1-docker:latest
   stage: test
-  before_script:
-    # Install Dependencies
-    - apt-get update && apt-get install -y parallel time gawk
   script:
-    # Grab first two arguments to test only
-    - mv arguments arguments.temp
-    - head -n 2 arguments.temp > arguments
-    # Download test videos from SVT-AV1
-    - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
-    - tar xf video.tar.gz
     # Test actual scripts
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --cq 60 --cpu 6
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --q --quality 60 --cpu 6
     - cat stats.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+bd_rate:
+  stage: test
+  script:
+    # Test actual scripts
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --q --bd steps --cpu 6
+    - cat stats.csv
+    - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
