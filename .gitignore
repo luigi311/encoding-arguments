@@ -1,0 +1,10 @@
+# Ignore everything
+*
+# Do not ignore base objects
+!LICENSE
+!*/
+# Whitelist scripts
+!*.sh
+!*.py
+# Whitelist arguments file
+!arguments

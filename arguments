@@ -7,9 +7,6 @@ baseline
 --bias-pct=0
 --tune-content=default
 --tune-content=screen
---tune=vmaf
---tune=vmaf_with_preprocessing
---tune=vmaf_without_preprocessing
 --aq-mode=1
 --aq-mode=2
 --aq-mode=3
@@ -136,7 +133,6 @@ baseline
 --enable-dual-filter=0
 --enable-intra-edge-filter=0
 --enable-order-hint=0
---enable-tx64=0
 --enable-flip-idtx=0
 --enable-dist-wtd-comp=0
 --enable-masked-comp=0
@@ -179,7 +175,6 @@ baseline
 --quant-b-adapt=2
 --quant-b-adapt=3
 --error-resilient=1
---delta-lf-mode=1
 --noise-sensitivity=0
 --noise-sensitivity=1
 --noise-sensitivity=2

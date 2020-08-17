@@ -15,17 +15,19 @@ CSV="stats.csv"
 VMAF_WORKERS=3
 THREADS=4
 CPU=6
+Q=0
 CQ=0
 VBR=0
-QUALITY=50
+QUALITY=-1
 MANUAL=0
+BD=0
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
     case "$1" in
         -h | -\? | --help)
             printf "Test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass\n"
-            printf "and second pass, vmaf score and put them in a csv.\n"
+            printf "and second pass, visual metric scores and put them in a csv.\n"
             printf "\nUsage:\n"
             printf "\t ./run.sh [options]\n"
             printf "Example:\n"
@@ -33,6 +35,7 @@ while :; do
             printf "\nGeneral Options:\n"
             printf "\t -i/--input [\"file\"]\t\t Video source to use (default video.mkv)\n"
             printf "\t -o/--output [\"folder\"]\t\t Output folder to place all encoded videos and stats files (default output)\n"
+            printf "\t --bd [\"file\"]\t\t Steps file that contains different quality settings to test bd_rate with\n"
             printf "\t -c/--csv [\"file\"]\t\t CSV file to output final stats for all encodes to (default stats.csv)\n"
             printf "\t -e/--encworkers [number]\t Number of encodes to run simultaneously (defaults cpu threads/aomenc threads)\n"
             printf "\t -v/--vmafworkers [number]\t Number of vmaf calculations to run simultaneously (defaults 3)\n"
@@ -42,7 +45,8 @@ while :; do
             printf "\t -f/--flags [\"file\"]\t\t File with different flags to test. Each line represents\n"
             printf "\t\t\t\t\t a seperate test (default arguments)\n"
             printf "\t -t/--threads [number]\t\t Amount of aomenc threads each encode should use (default 4)\n"
-            printf "\t --cq [number]\t\t\t Use q mode and set cq-level to number provided (default 50)\n"
+            printf "\t --q [number]\t\t\t Use q mode and set cq-level to number provided (default 50)\n"
+            printf "\t --cq [number]\t\t\t Use cq mode and set cq-level to number provided,currently disabled \n"
             printf "\t --vbr [number]\t\t\t Use vbr mode and set target-bitrate to number provided\n"
             printf "\t --cpu [number]\t\t\t Set cpu-used encoding preset used by aomenc (default 6)\n"
             exit 0
@@ -107,26 +111,44 @@ while :; do
                 die "ERROR: $1 requires a non-empty option argument."
             fi
             ;;
-        --cq)
-            if [ "$VBR" != 0 ]; then
-                die "Can not set both VBR and CQ"
-            elif [ "$2" ]; then
-                QUALITY="$2"
-                CQ=1
-                shift
-            else
-                die "ERROR: $1 requires a non-empty argument."
+        --q)
+            if [ "$VBR" -ne 0 ] || [ "$CQ" -ne 0 ]; then
+                die "Can not set VBR, CQ and q at the same time"
             fi
+            Q=1
+            ;;
+        --cq)
+            if [ "$VBR" -ne 0 ] || [ "$Q" -ne 0 ]; then
+                die "Can not set VBR, CQ and q at the same time"
+            fi
+            CQ=1
+            die "CQ is not properly setup"
             ;;
         --vbr)
-            if [ "$CQ" != 0 ]; then
-                die "Can not set both VBR and CQ"
+            if [ "$Q" -ne 0 ] || [ "$CQ" -ne 0 ]; then
+                die "Can not set VBR, CQ and q at the same time"
+            fi
+            VBR=1
+            ;;
+        --quality)
+            if [ "$BD" -ne 0 ]; then
+                die "Can not set both BD and quality"
             elif [ "$2" ]; then
                 QUALITY="$2"
-                VBR=1
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "ERROR: $1 requires a non-empty option argument."
+            fi
+            ;;
+        --bd)
+            if [ "$QUALITY" -ne -1 ]; then
+                die "Can not set both BD and quality"
+            elif [ "$2" ]; then
+                BD=1
+                BD_FILE="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty option argument."
             fi
             ;;
         --cpu)
@@ -157,21 +179,35 @@ elif [ ! -f "$FLAGS" ]; then
 fi
 
 if [ "$MANUAL" -ne 1 ]; then
-  ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
+    ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
 fi
 
-if [ "$CQ" -ne 0 ]; then
-    ENCODING="--cq $QUALITY"
+if [ "$QUALITY" -eq -1 ];then
+    QUALITY=50
+fi
+
+if [ "$Q" -ne 0 ]; then
+    ENCODING="--q"
+elif [ "$CQ" -ne 0 ]; then
+    ENCODING="--cq"
 elif [ "$VBR" -ne 0 ]; then
-    ENCODING="--vbr $QUALITY"
+    ENCODING="--vbr"
 else
-    ENCODING="--cq $QUALITY"
+    ENCODING="--q"
 fi
 
-echo "Encoding" &&
-parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" --flags {} < "$FLAGS" &&
-echo "Calculating VMAF" &&
-find "$OUTPUT" -name "*.webm" | parallel -j "$VMAF_WORKERS" --joblog vmaf.log $RESUME --bar scripts/calculate_vmaf.sh {} "$INPUT" &&
-echo "Flags, Size, First Encode Time, Second Encode Time, VMAF" > "$CSV" &&
-find "$OUTPUT" -name 'baseline.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
-find "$OUTPUT" -name '*.stats' -not -name 'baseline.stats' -exec awk '{print $0}' {} + >> "$CSV"
+if [ "$BD" -eq 0 ]; then
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" "$QUALITY" --flags {}
+else
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" {1} --flags {2}
+fi
+
+echo "Calculating Metrics" &&
+find "$OUTPUT" -name "*.webm" | parallel -j "$VMAF_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT" &&
+echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
+find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
+find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
+
+if [ "$BD" -ne 0 ]; then
+    scripts/bd_features.py --input "$CSV" --output "${CSV%.csv}_bd_rates.csv"
+fi
