@@ -7,48 +7,60 @@ die() {
     printf '%s\n' "$1" >&2
     exit 1
 }
+help() {
+    help="$(cat <<EOF
+Test multiple encoding flags simultaneously, will gather stats such as file size, duration of first pass and second pass,
+    visual metric scores and put them in a csv. Optionally can calulate bd_rate with that csv for all flags
+Usage:
+    ./run.sh [options]
+Example:
+    ./run.sh --flags arguments --encworkers 12
+General Options:
+    -h/--help                       Print this help screen
+    -i/--input          [file]      Video source to use                                             (default video.mkv)
+    -o/--output         [folder]    Output folder to place all encoded videos and stats files       (default output)
+    --bd                [file]      File that contains different qualities to test for bd_rate
+    -c/--csv            [file]      CSV file to output final stats for all encodes to               (default stats.csv)
+    -e/--encworkers     [number]    Number of encodes to run simultaneously                         (defaults aom threads/encoding threads, x265 threads/2)
+    -m/--metricworkers  [number]    Number of vmaf calculations to run simultaneously               (defaults 1)
+    --resume                        Resume option for parallel, will use encoding.log and vmaf.log  (default false)
+Encoding Settings:
+    --enc               [string]    Encoder to test, supports aomenc and x265                       (default aomenc)
+    -f/--flags          [file]      File with different flags to test. Each line is a seperate test (default arguments.aomenc)
+    -t/--threads        [number]    Amount of aomenc threads each encode should use                 (default 4)
+    --q                             Use q mode   (applies to aomenc only)                           (default for aomenc)
+    --cq                            Use cq mode  (applies to aomenc only)
+    --vbr                           Use vbr mode (applies to aomenc/x265 only)
+    --crf                           Use crf mode (applies to x265 only)                             (default for x265)
+    --quality           [number]    Bitrate for vbr, cq-level for q/cq mode, crf level for crf      (default 50)
+    --preset            [number]    Set cpu-used/preset used by encoder                             (default 6)
+EOF
+)"
+    echo "$help"
+}
 
-FLAGS="arguments"
+FLAGS="arguments.aomenc"
 OUTPUT="output"
 INPUT="video.mkv"
 CSV="stats.csv"
-VMAF_WORKERS=3
+METRIC_WORKERS=1
 THREADS=4
-CPU=6
-Q=0
-CQ=0
-VBR=0
+PRESET=6
+Q=-1
+CQ=-1
+VBR=-1
+CRF=-1
 QUALITY=-1
 MANUAL=0
 BD=0
+ENCODER="aomenc"
+SUPPORTED_ENCODERS="aomenc:x265"
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
     case "$1" in
         -h | -\? | --help)
-            printf "Test multiple aomenc flags simultaneously, will gather stats such as file size, duration of first pass\n"
-            printf "and second pass, visual metric scores and put them in a csv.\n"
-            printf "\nUsage:\n"
-            printf "\t ./run.sh [options]\n"
-            printf "Example:\n"
-            printf "\t ./run.sh --flags arguments --encworkers 12"
-            printf "\nGeneral Options:\n"
-            printf "\t -i/--input [\"file\"]\t\t Video source to use (default video.mkv)\n"
-            printf "\t -o/--output [\"folder\"]\t\t Output folder to place all encoded videos and stats files (default output)\n"
-            printf "\t --bd [\"file\"]\t\t Steps file that contains different quality settings to test bd_rate with\n"
-            printf "\t -c/--csv [\"file\"]\t\t CSV file to output final stats for all encodes to (default stats.csv)\n"
-            printf "\t -e/--encworkers [number]\t Number of encodes to run simultaneously (defaults cpu threads/aomenc threads)\n"
-            printf "\t -v/--vmafworkers [number]\t Number of vmaf calculations to run simultaneously (defaults 3)\n"
-            printf "\t --resume\t\t\t Resume option for parallel, will use encoding.log and vmaf.log \n"
-            printf "\t\t\t\t\t Does not take into account different encoding settings (default false)\n"
-            printf "\nEncoding Settings:\n"
-            printf "\t -f/--flags [\"file\"]\t\t File with different flags to test. Each line represents\n"
-            printf "\t\t\t\t\t a seperate test (default arguments)\n"
-            printf "\t -t/--threads [number]\t\t Amount of aomenc threads each encode should use (default 4)\n"
-            printf "\t --q [number]\t\t\t Use q mode and set cq-level to number provided (default 50)\n"
-            printf "\t --cq [number]\t\t\t Use cq mode and set cq-level to number provided,currently disabled \n"
-            printf "\t --vbr [number]\t\t\t Use vbr mode and set target-bitrate to number provided\n"
-            printf "\t --cpu [number]\t\t\t Set cpu-used encoding preset used by aomenc (default 6)\n"
+            help
             exit 0
             ;;
         -i | --input)
@@ -62,6 +74,18 @@ while :; do
         -o | --output)
             if [ "$2" ]; then
                 OUTPUT="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty option argument."
+            fi
+            ;;
+        --enc)
+            if [ "$2" ]; then
+                ENCODER="$2"
+                # https://stackoverflow.com/questions/8063228/how-do-i-check-if-a-variable-exists-in-a-list-in-bash#comment91727359_46564084
+                if [[ ":$SUPPORTED_ENCODERS:" != *:$ENCODER:* ]]; then
+                    die "$2 not supported"
+                fi
                 shift
             else
                 die "ERROR: $1 requires a non-empty option argument."
@@ -84,9 +108,9 @@ while :; do
                 die "ERROR: $1 requires a non-empty option argument."
             fi
             ;;
-        -v | --vmafworkers)
+        -m | --metricworkers)
             if [ "$2" ]; then
-                VMAF_WORKERS="$2"
+                METRIC_WORKERS="$2"
                 shift
             else
                 die "ERROR: $1 requires a non-empty option argument."
@@ -112,23 +136,29 @@ while :; do
             fi
             ;;
         --q)
-            if [ "$VBR" -ne 0 ] || [ "$CQ" -ne 0 ]; then
-                die "Can not set VBR, CQ and q at the same time"
+            if [ "$VBR" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+                die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             Q=1
             ;;
         --cq)
-            if [ "$VBR" -ne 0 ] || [ "$Q" -ne 0 ]; then
-                die "Can not set VBR, CQ and q at the same time"
+            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+                die "Can not set VBR, CQ, q and CRF at the same time"
             fi
-            CQ=1
             die "CQ is not properly setup"
+            CQ=1
             ;;
         --vbr)
-            if [ "$Q" -ne 0 ] || [ "$CQ" -ne 0 ]; then
-                die "Can not set VBR, CQ and q at the same time"
+            if [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+                die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             VBR=1
+            ;;
+        --crf)
+            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ]; then
+                die "Can not set VBR, CQ, q and CRF at the same time"
+            fi
+            CRF=1
             ;;
         --quality)
             if [ "$BD" -ne 0 ]; then
@@ -146,14 +176,17 @@ while :; do
             elif [ "$2" ]; then
                 BD=1
                 BD_FILE="$2"
+                if [ ! -f "$BD_FILE" ]; then
+                    die "$BD_FILE file does not exist"
+                fi
                 shift
             else
                 die "ERROR: $1 requires a non-empty option argument."
             fi
             ;;
-        --cpu)
+        --preset)
             if [ "$2" ]; then
-                CPU="$2"
+                PRESET="$2"
                 shift
             else
                 die "ERROR: $1 requires a non-empty argument."
@@ -179,31 +212,45 @@ elif [ ! -f "$FLAGS" ]; then
 fi
 
 if [ "$MANUAL" -ne 1 ]; then
-    ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
+    if [ "$ENCODER" == "aomenc" ]; then
+        ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
+    else
+        ENC_WORKERS=$(( $(nproc) / 2 ))
+    fi
 fi
 
-if [ "$QUALITY" -eq -1 ];then
+if [ "$Q" -ne -1 ]; then
+    ENCODING="--q"
+elif [ "$CQ" -ne -1 ]; then
+    ENCODING="--cq"
+elif [ "$VBR" -ne -1 ]; then
+    ENCODING="--vbr"
+elif [ "$CRF" -ne -1 ]; then
+    if [ "$ENCODER" == "x265" ]; then
+        ENCODING="--crf"
+    else
+        die "crf is only supported by x265"
+    fi
+else
+    if [ "$ENCODER" == "aomenc" ]; then
+        ENCODING="--q"
+    elif [ "$ENCODER" == "x265" ]; then
+        ENCODING="--crf"
+    fi
+fi
+
+if [ "$QUALITY" == -1 ];then
     QUALITY=50
 fi
 
-if [ "$Q" -ne 0 ]; then
-    ENCODING="--q"
-elif [ "$CQ" -ne 0 ]; then
-    ENCODING="--cq"
-elif [ "$VBR" -ne 0 ]; then
-    ENCODING="--vbr"
-else
-    ENCODING="--q"
-fi
-
 if [ "$BD" -eq 0 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" "$QUALITY" --flags {}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --enc "$ENCODER" --threads "$THREADS" --preset "$PRESET" "$ENCODING" --quality "$QUALITY" --flag {1}
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" --cpu "$CPU" "$ENCODING" {1} --flags {2}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --enc "$ENCODER" --threads "$THREADS" --preset "$PRESET" "$ENCODING" --quality {1} --flag {2}
 fi
 
 echo "Calculating Metrics" &&
-find "$OUTPUT" -name "*.webm" | parallel -j "$VMAF_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT" &&
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT" &&
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
 find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
 find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
