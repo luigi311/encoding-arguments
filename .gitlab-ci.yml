@@ -1,19 +1,4 @@
-default:
-  image: registry.gitlab.com/luigi311/av1-docker:latest
-  before_script:
-    # Install Dependencies
-    - apt-get update && apt-get install -y parallel time gawk jq python3 python3-pip python-is-python3
-    - pip3 install numpy
-    # Grab first two arguments to test only
-    - mv arguments arguments.temp
-    - head -n 2 arguments.temp > arguments
-    # Download test videos from SVT-AV1
-    - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
-    - tar xf video.tar.gz
-
-stages:
-  - test
-
+# Code Quality
 include:
   - template: Code-Quality.gitlab-ci.yml
 
@@ -24,19 +9,48 @@ code_quality:
     paths: [gl-code-quality-report.json]
   allow_failure: true
 
-validation:
-  stage: test
+# Script testing
+default:
+  image: registry.gitlab.com/luigi311/av1-docker:latest
+  before_script:
+    - export DEBIAN_FRONTEND=noninteractive
+    # Install Dependencies
+    - apt-get update && apt-get install -y parallel time gawk jq python3 python3-pip python-is-python3
+    - pip3 install numpy
+    # Grab first two arguments to test only
+    - mv arguments.aomenc arguments.temp
+    - head -n 2 arguments.temp > arguments.aomenc
+    - mv arguments.x265 arguments.temp
+    - head -n 2 arguments.temp > arguments.x265
+    # Download test videos from SVT-AV1
+    - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
+    - tar xf video.tar.gz
+
+stages:
+  - test
+
+validation-aomenc:
   script:
-    # Test actual scripts
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --q --quality 60 --cpu 6
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --quality 60 --preset 6
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
-bd_rate:
-  stage: test
+bd_rate-aomenc:
   script:
-    # Test actual scripts
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --vmafworkers 1 --flags arguments --threads 2 --q --bd steps --cpu 6
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps --preset 6
+    - cat stats.csv
+    - cat stats_bd_rates.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+validation-x265:
+  script:
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --quality 40 --preset 0 --enc x265
+    - cat stats.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+bd_rate-x265:
+  script:
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --bd steps --preset 0 --enc x265
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
