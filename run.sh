@@ -14,7 +14,7 @@ Test multiple encoding flags simultaneously, will gather stats such as file size
 Usage:
     ./run.sh [options]
 Example:
-    ./run.sh --flags arguments --encworkers 12
+    ./run.sh --flags arguments.aomenc --encworkers 12
 General Options:
     -h/--help                       Print this help screen
     -i/--input          [file]      Video source to use                                             (default video.mkv)
@@ -129,7 +129,7 @@ while :; do
             ;;
         -t | --threads)
             if [ "$2" ]; then
-                VMAF_WORKERS="$2"
+                THREADS="$2"
                 shift
             else
                 die "ERROR: $1 requires a non-empty option argument."
