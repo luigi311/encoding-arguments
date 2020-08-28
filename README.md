@@ -1,6 +1,6 @@
 # encoding-arguments
 
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/9d73582417664408a6f0488555c6f063)](https://www.codacy.com/manual/luigi311/aomenc-arguments?utm_source=gitlab.com&utm_medium=referral&utm_content=Luigi311/aomenc-arguments&utm_campaign=Badge_Grade)  
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/eaa31e1d78a54965913c70351efcadf4)](https://www.codacy.com/manual/luigi311/encoding-arguments?utm_source=gitlab.com&amp;utm_medium=referral&amp;utm_content=Luigi311/encoding-arguments&amp;utm_campaign=Badge_Grade)
 Test multiple encoding flags simultaneously, will gather stats such as file size, duration of first pass and second pass,
 visual metric scores and put them in a csv. Optionally can calulate bd_rate with that csv for all flags
 
