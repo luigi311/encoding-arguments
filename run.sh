@@ -39,13 +39,12 @@ EOF
     echo "$help"
 }
 
-FLAGS="arguments.aomenc"
+FLAGS=-1
 OUTPUT="output"
 INPUT="video.mkv"
 CSV="stats.csv"
 METRIC_WORKERS=1
 THREADS=4
-PRESET=6
 Q=-1
 CQ=-1
 VBR=-1
@@ -54,7 +53,7 @@ QUALITY=-1
 MANUAL=0
 BD=0
 ENCODER="aomenc"
-SUPPORTED_ENCODERS="aomenc:x265"
+SUPPORTED_ENCODERS="aomenc:x265:svt-av1"
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -145,7 +144,6 @@ while :; do
             if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CRF" -ne -1 ]; then
                 die "Can not set VBR, CQ, q and CRF at the same time"
             fi
-            die "CQ is not properly setup"
             CQ=1
             ;;
         --vbr)
@@ -186,7 +184,7 @@ while :; do
             ;;
         --preset)
             if [ "$2" ]; then
-                PRESET="$2"
+                PRESET="--preset $2"
                 shift
             else
                 die "ERROR: $1 requires a non-empty argument."
@@ -205,48 +203,81 @@ while :; do
     shift
 done
 
-if [ ! -f "$INPUT" ]; then
-    die "$INPUT file does not exist"
-elif [ ! -f "$FLAGS" ]; then
-    die "$FLAGS file does not exist"
-fi
-
+# Set job amounts for encoding
 if [ "$MANUAL" -ne 1 ]; then
-    if [ "$ENCODER" == "aomenc" ]; then
-        ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
-    else
-        ENC_WORKERS=$(( $(nproc) / 2 ))
-    fi
+    ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
 fi
 
+# Set encoding settings
 if [ "$Q" -ne -1 ]; then
-    ENCODING="--q"
+    if [ "$ENCODER" == "aomenc" ]; then
+        ENCODING="--q"
+    else
+        die "q is not supported by $ENCODER"
+    fi
 elif [ "$CQ" -ne -1 ]; then
-    ENCODING="--cq"
+    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ]; then
+        ENCODING="--cq"
+    else
+        die "cq is not supported by $ENCODER"
+    fi
 elif [ "$VBR" -ne -1 ]; then
-    ENCODING="--vbr"
+    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ] || [ "$ENCODER" == "x265" ]; then
+        ENCODING="--vbr"
+    else
+        die "vbr is not supported by $ENCODER"
+    fi
 elif [ "$CRF" -ne -1 ]; then
     if [ "$ENCODER" == "x265" ]; then
         ENCODING="--crf"
     else
-        die "crf is only supported by x265"
+        die "crf is not supported by $ENCODER"
     fi
 else
     if [ "$ENCODER" == "aomenc" ]; then
         ENCODING="--q"
     elif [ "$ENCODER" == "x265" ]; then
         ENCODING="--crf"
+    elif [ "$ENCODER" == "svt-av1" ]; then
+        ENCODING="--cq"
     fi
 fi
 
-if [ "$QUALITY" == -1 ];then
-    QUALITY=50
+# Default quality setting if not manually set
+if [ "$QUALITY" == -1 ]; then
+    QUALITY=45
 fi
 
+if [ "$FLAGS" == -1 ]; then
+    if [ "$ENCODER" == "aomenc" ]; then
+        FLAGS="arguments.aomenc"
+    elif [ "$ENCODER" == "svt-av1" ]; then
+        FLAGS="arguments.svt-av1"
+    elif [ "$ENCODER" == "x265" ]; then
+        FLAGS="arguments.x265"
+    fi
+fi
+
+# Check if files exist
+if [ ! -f "$INPUT" ]; then
+    die "$INPUT file does not exist"
+elif [ ! -f "$FLAGS" ]; then
+    die "$FLAGS file does not exist"
+fi
+
+if [ "$ENCODER" == "aomenc" ]; then
+    SCRIPT="scripts/encoder_aomenc.sh"
+elif [ "$ENCODER" == "x265" ]; then
+    SCRIPT="scripts/encoder_x265.sh"
+elif [ "$ENCODER" == "svt-av1" ]; then
+    SCRIPT="scripts/encoder_svt-av1.sh"
+fi
+
+# Run encoding scripts
 if [ "$BD" -eq 0 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --enc "$ENCODER" --threads "$THREADS" --preset "$PRESET" "$ENCODING" --quality "$QUALITY" --flag {1}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$PRESET" "$ENCODING" --quality "$QUALITY" --flag {1}
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" scripts/encoder.sh --input "$INPUT" --output "$OUTPUT" --enc "$ENCODER" --threads "$THREADS" --preset "$PRESET" "$ENCODING" --quality {1} --flag {2}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$PRESET" "$ENCODING" --quality {1} --flag {2}
 fi
 
 echo "Calculating Metrics" &&

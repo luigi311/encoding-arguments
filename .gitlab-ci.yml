@@ -22,6 +22,8 @@ default:
     - head -n 2 arguments.temp > arguments.aomenc
     - mv arguments.x265 arguments.temp
     - head -n 2 arguments.temp > arguments.x265
+    - mv arguments.svt-av1 arguments.temp
+    - head -n 2 arguments.temp > arguments.svt-av1
     # Download test videos from SVT-AV1
     - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
     - tar xf video.tar.gz
@@ -31,13 +33,13 @@ stages:
 
 validation-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --quality 60 --preset 6
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --quality 40 --preset 6 --enc aomenc
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 bd_rate-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps --preset 6
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps --preset 6 --enc aomenc
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
@@ -54,3 +56,17 @@ bd_rate-x265:
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+validation-svt-av1:
+  script:
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --quality 40 --preset 8 --enc svt-av1
+    - cat stats.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+bd_rate-svt-av1:
+  script:
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --bd steps --preset 8 --enc svt-av1
+    - cat stats.csv
+    - cat stats_bd_rates.csv
+    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+    
