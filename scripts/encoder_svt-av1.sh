@@ -152,8 +152,8 @@ FIRST=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | Svt
 SECOND=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | SvtAv1EncApp -i stdin --preset $PRESET --irefresh-type 2 --pass 2 --lp $THREADS --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $QUALITY_SETTINGS $FLAG -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
 ffmpeg -y -hide_banner -loglevel error -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" &&
 
-rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log*" &&
-rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf*" &&
+rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&
+rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" &&
 SIZE=$(du "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" | awk '{print $1}') &&
 BITRATE=$(ffprobe -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1 | awk ' /bitrate:/ { print $(NF-1) }')
 echo -n "$FLAGSSTAT,$SIZE,$TYPE,$BITRATE,$FIRST,$SECOND," > "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.stats"

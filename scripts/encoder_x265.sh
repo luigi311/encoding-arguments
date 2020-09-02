@@ -156,7 +156,7 @@ elif [ "$VBR" -ne -1 ]; then
     SECOND=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -c:v libx265 $QUALITY_SETTINGS -preset $PRESET -x265-params \"frame-threads=1:pools=${THREADS}:pass=2:stats=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log${FLAG}\" $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1 | awk ' /Sec/ { print $2 }')
 fi
 
-rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log*" &&
+rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" &&
 SIZE=$(du "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" | awk '{print $1}') &&
 BITRATE=$(ffprobe -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1 | awk ' /bitrate:/ { print $(NF-1) }')

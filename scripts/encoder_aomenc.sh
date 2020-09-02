@@ -162,7 +162,7 @@ FIRST=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | aom
 SECOND=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | aomenc --passes=2 --threads=$THREADS -b 10 --cpu-used=$PRESET $QUALITY_SETTINGS $FLAG --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log --pass=2 -o $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
 ffmpeg -y -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv"  &&
 
-rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log*" &&
+rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" &&
 SIZE=$(du "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" | awk '{print $1}') &&
 BITRATE=$(ffprobe -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1 | awk ' /bitrate:/ { print $(NF-1) }')
