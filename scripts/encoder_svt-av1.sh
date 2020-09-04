@@ -18,12 +18,11 @@ Encoding Options:
     -o/--output  [folder]   Output folder to place encoded videos and stats files               (default output)
     -f/--flag    [string]   Flag to test, surround in quotes to prevent issues                  (default baseline)
     -t/--threads [number]   Amount of threads to use                                            (default 4)
-    --q                     Use q mode   (applies to aomenc only)                               (default for aomenc)
-    --cq                    Use cq mode  (applies to aomenc only)
-    --vbr                   Use vbr mode (applies to aomenc/x265 only)
-    --crf                   Use crf mode (applies to x265 only)                                 (default for x265)
     --quality    [number]   Bitrate for vbr, cq-level for q/cq mode, crf                        (default 50)
-    --preset     [number]   Set encoding preset, aomenc higher is faster, x265 lower is faster  (default 6)
+    --preset     [number]   Set encoding preset, higher is faster                               (default 6)
+    --pass       [number]   Set amount of passes                                                (default 1)
+    --cq                    Use cq mode                                                         (default)
+    --vbr                   Use vbr mode
 EOF
             )"
             echo "$help"
@@ -32,11 +31,12 @@ EOF
 OUTPUT="output"
 INPUT="video.mkv"
 FLAG="baseline"
-THREADS=$(nproc)
+THREADS=-1
 PRESET=8
 CQ=-1
 VBR=-1
 QUALITY=40
+PASS=1
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -105,6 +105,14 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --pass)
+            if [ "$2" ]; then
+                PASS="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
         --) # End of all options.
             shift
             break
@@ -117,6 +125,10 @@ while :; do
     esac
     shift
 done
+
+if [ "$THREADS" -eq -1 ]; then
+    THREADS=$(( 18 < $(nproc) ? 18 : $(nproc) ))
+fi
 
 # Original Flags used for CSV
 FLAGSSTAT="$FLAG"
@@ -147,9 +159,16 @@ else
 fi
 
 mkdir -p "$OUTPUT/${FOLDER}_${TYPE}"
-FFMPEGBASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le"
-FIRST=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | SvtAv1EncApp -i stdin --preset $PRESET --irefresh-type 2 --pass 1 --lp $THREADS --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $QUALITY_SETTINGS $FLAG 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-SECOND=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | SvtAv1EncApp -i stdin --preset $PRESET --irefresh-type 2 --pass 2 --lp $THREADS --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $QUALITY_SETTINGS $FLAG -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+BASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le -f yuv4mpegpipe - | SvtAv1EncApp -i stdin --preset $PRESET --irefresh-type 2 --lp $THREADS $QUALITY_SETTINGS"
+if [ "$PASS" == 1 ]; then
+    FIRST=$(env time --format="Sec %e" bash -c " $BASE -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+    SECOND=0
+elif [ "$PASS" == 2 ]; then
+    FIRST=$(env time --format="Sec %e" bash -c " $BASE --pass 1 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+    SECOND=$(env time --format="Sec %e" bash -c " $BASE --pass 2 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }')
+else
+    die "Pass $PASS unsupported"
+fi
 ffmpeg -y -hide_banner -loglevel error -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" &&
 
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&

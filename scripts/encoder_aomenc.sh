@@ -22,7 +22,7 @@ Encoding Options:
     --cq                    Use cq mode  
     --vbr                   Use vbr mode 
     --quality    [number]   Bitrate for vbr, cq-level for q/cq mode, crf                        (default 50)
-    --preset     [number]   Set encoding preset, aomenc higher is faster, x265 lower is faster  (default 6)
+    --preset     [number]   Set encoding preset, higher is faster                               (default 6)
 EOF
             )"
             echo "$help"
@@ -30,13 +30,14 @@ EOF
 
 OUTPUT="output"
 INPUT="video.mkv"
-THREADS=4
+THREADS=-1
 FLAG="baseline"
 PRESET=6
 Q=-1
 CQ=-1
 VBR=-1
 QUALITY=50
+PASS=2
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -112,6 +113,14 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --pass)
+            if [ "$2" ]; then
+                PASS="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
         --) # End of all options.
             shift
             break
@@ -124,6 +133,10 @@ while :; do
     esac
     shift
 done
+
+if [ "$THREADS" -eq -1 ]; then
+    THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
+fi
 
 # Original Flags used for CSV
 FLAGSSTAT="$FLAG"
@@ -157,10 +170,14 @@ else
 fi
 
 mkdir -p "$OUTPUT/${FOLDER}_${TYPE}"
-FFMPEGBASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le"
-FIRST=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | aomenc --passes=2 --threads=$THREADS -b 10 --cpu-used=$PRESET $QUALITY_SETTINGS $FLAG --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log --pass=1 -o /dev/null - > /dev/null 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-SECOND=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -f yuv4mpegpipe - | aomenc --passes=2 --threads=$THREADS -b 10 --cpu-used=$PRESET $QUALITY_SETTINGS $FLAG --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log --pass=2 -o $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-ffmpeg -y -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv"  &&
+BASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le -f yuv4mpegpipe - | aomenc --threads=$THREADS -b 10 --cpu-used=$PRESET $QUALITY_SETTINGS $FLAG"
+if [ "$PASS" == 1 ]; then
+    FIRST=$(env time --format="Sec %e" bash -c " $BASE -o $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm - > /dev/null 2>&1" 2>&1 | awk ' /Sec/ { print $2 }')
+elif [ "$PASS" == 2 ]; then
+    FIRST=$(env time --format="Sec %e" bash -c " $BASE --passes=2 --pass=1 --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log -o /dev/null - > /dev/null 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+    SECOND=$(env time --format="Sec %e" bash -c " $BASE --passes=2 --pass=2 --fpf=$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log -o $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm - 2>&1" 2>&1 | awk ' /Sec/ { print $2 }')
+fi
+ffmpeg -y -hide_banner -loglevel error -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv"  &&
 
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.webm" &&
