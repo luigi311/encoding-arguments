@@ -18,10 +18,11 @@ Encoding Options:
     -o/--output  [folder]   Output folder to place encoded videos and stats files               (default output)
     -f/--flag    [string]   Flag to test, surround in quotes to prevent issues                  (default baseline)
     -t/--threads [number]   Amount of threads to use                                            (default 4)
-    --vbr                   Use vbr mode (applies to aomenc/x265 only)
-    --crf                   Use crf mode (applies to x265 only)                                 (default)
     --quality    [number]   Bitrate for vbr, cq-level for q/cq mode, crf                        (default 50)
     --preset     [number]   Set encoding preset, aomenc higher is faster, x265 lower is faster  (default 6)
+    --pass       [number]   Set amount of passes                                                (default 1)
+    --vbr                   Use vbr mode (applies to aomenc/x265 only)
+    --crf                   Use crf mode (applies to x265 only)                                 (default)
 EOF
             )"
             echo "$help"
@@ -30,10 +31,12 @@ EOF
 OUTPUT="output"
 INPUT="video.mkv"
 FLAG="baseline"
+THREADS=-1
 PRESET=0
 VBR=-1
 CRF=-1
 QUALITY=50
+PASS=1
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -102,6 +105,14 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --pass)
+            if [ "$2" ]; then
+                PASS="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
         --) # End of all options.
             shift
             break
@@ -114,6 +125,10 @@ while :; do
     esac
     shift
 done
+
+if [ "$THREADS" -eq -1 ]; then
+    THREADS=$(( 32 < $(nproc) ? 32 : $(nproc) ))
+fi
 
 # Original Flags used for CSV
 FLAGSSTAT="$FLAG"
@@ -148,7 +163,7 @@ fi
 mkdir -p "$OUTPUT/${FOLDER}_${TYPE}"
 FFMPEGBASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le"
 
-if [ "$CRF" -ne -1 ]; then
+if [ "$CRF" -ne -1 ] || [ "$PASS" -eq 1 ]; then
     FIRST=$(env time --format="Sec %e" bash -c " $FFMPEGBASE -c:v libx265 $QUALITY_SETTINGS -preset $PRESET -x265-params \"frame-threads=1:pools=${THREADS}${FLAG}\" $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv " 2>&1 | awk ' /Sec/ { print $2 }')
     SECOND=0
 elif [ "$VBR" -ne -1 ]; then

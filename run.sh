@@ -28,12 +28,13 @@ Encoding Settings:
     --enc               [string]    Encoder to test, supports aomenc and x265                       (default aomenc)
     -f/--flags          [file]      File with different flags to test. Each line is a seperate test (default arguments.aomenc)
     -t/--threads        [number]    Amount of aomenc threads each encode should use                 (default 4)
+    --quality           [number]    Bitrate for vbr, cq-level for q/cq mode, crf level for crf      (default 50)
+    --preset            [number]    Set cpu-used/preset used by encoder                             (default 6)
+    --pass              [number]    Set amount of passes for encoder
     --q                             Use q mode   (applies to aomenc only)                           (default for aomenc)
     --cq                            Use cq mode  (applies to aomenc only)
     --vbr                           Use vbr mode (applies to aomenc/x265 only)
     --crf                           Use crf mode (applies to x265 only)                             (default for x265)
-    --quality           [number]    Bitrate for vbr, cq-level for q/cq mode, crf level for crf      (default 50)
-    --preset            [number]    Set cpu-used/preset used by encoder                             (default 6)
 EOF
 )"
     echo "$help"
@@ -44,7 +45,7 @@ OUTPUT="output"
 INPUT="video.mkv"
 CSV="stats.csv"
 METRIC_WORKERS=1
-THREADS=4
+THREADS=-1
 Q=-1
 CQ=-1
 VBR=-1
@@ -190,6 +191,14 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --pass)
+            if [ "$2" ]; then
+                PASS="--pass $2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
         --) # End of all options.
             shift
             break
@@ -203,9 +212,19 @@ while :; do
     shift
 done
 
+if [ "$THREADS" -eq -1 ]; then
+    if [ "$ENCODER" == "aomenc" ]; then
+        THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
+    elif [ "$ENCODER" == "svt-av1" ]; then
+        THREADS=$(( 18 < $(nproc) ? 18 : $(nproc) ))
+    elif [ "$ENCODER" == "x265" ]; then
+        THREADS=$(( 32 < $(nproc) ? 32 : $(nproc) ))
+    fi
+fi
+
 # Set job amounts for encoding
 if [ "$MANUAL" -ne 1 ]; then
-    ENC_WORKERS=$(( $(nproc) / "$THREADS" ))
+    ENC_WORKERS=$(( ($(nproc) / "$THREADS") ))
 fi
 
 # Set encoding settings
@@ -267,17 +286,17 @@ fi
 
 if [ "$ENCODER" == "aomenc" ]; then
     SCRIPT="scripts/encoder_aomenc.sh"
-elif [ "$ENCODER" == "x265" ]; then
-    SCRIPT="scripts/encoder_x265.sh"
 elif [ "$ENCODER" == "svt-av1" ]; then
     SCRIPT="scripts/encoder_svt-av1.sh"
+elif [ "$ENCODER" == "x265" ]; then
+    SCRIPT="scripts/encoder_x265.sh"
 fi
 
 # Run encoding scripts
 if [ "$BD" -eq 0 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$PRESET" "$ENCODING" --quality "$QUALITY" --flag {1}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag {1} "$PRESET" "$PASS"
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$PRESET" "$ENCODING" --quality {1} --flag {2}
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality {1} --flag {2} "$PRESET" "$PASS"
 fi
 
 echo "Calculating Metrics" &&
