@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-set -e
-set -o pipefail
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 die() {
     printf '%s\n' "$1" >&2
     exit 1
 }
+
 help() {
     help="$(cat <<EOF
 Test multiple encoding flags simultaneously, will gather stats such as file size, duration of first pass and second pass,
@@ -35,6 +34,7 @@ Encoding Settings:
     --cq                            Use cq mode  (applies to aomenc only)
     --vbr                           Use vbr mode (applies to aomenc/x265 only)
     --crf                           Use crf mode (applies to x265 only)                             (default for x265)
+    --decode                        Test decoding speed
 EOF
 )"
     echo "$help"
@@ -52,7 +52,7 @@ VBR=-1
 CRF=-1
 QUALITY=-1
 MANUAL=0
-BD=0
+BD=-1
 ENCODER="aomenc"
 SUPPORTED_ENCODERS="aomenc:x265:svt-av1"
 
@@ -160,7 +160,7 @@ while :; do
             CRF=1
             ;;
         --quality)
-            if [ "$BD" -ne 0 ]; then
+            if [ "$BD" -ne -1 ]; then
                 die "Can not set both BD and quality"
             elif [ "$2" ]; then
                 QUALITY="$2"
@@ -198,6 +198,9 @@ while :; do
             else
                 die "ERROR: $1 requires a non-empty argument."
             fi
+            ;;
+        --decode)
+            DECODE="--decode"
             ;;
         --) # End of all options.
             shift
@@ -284,27 +287,21 @@ elif [ ! -f "$FLAGS" ]; then
     die "$FLAGS file does not exist"
 fi
 
-if [ "$ENCODER" == "aomenc" ]; then
-    SCRIPT="scripts/encoder_aomenc.sh"
-elif [ "$ENCODER" == "svt-av1" ]; then
-    SCRIPT="scripts/encoder_svt-av1.sh"
-elif [ "$ENCODER" == "x265" ]; then
-    SCRIPT="scripts/encoder_x265.sh"
-fi
-
 # Run encoding scripts
-if [ "$BD" -eq 0 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag {1} "$PRESET" "$PASS"
+if [ "$BD" -eq -1 ]; then
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "$SCRIPT" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality {1} --flag {2} "$PRESET" "$PASS"
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
 echo "Calculating Metrics" &&
-find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT" &&
-echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
+
+echo "Creating CSV" &&
+echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
 find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
 find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
 
-if [ "$BD" -ne 0 ]; then
+if [ "$BD" -ne -1 ]; then
     scripts/bd_features.py --input "$CSV" --output "${CSV%.csv}_bd_rates.csv"
 fi

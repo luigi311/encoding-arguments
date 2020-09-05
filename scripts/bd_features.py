@@ -150,6 +150,8 @@ ls = []
 baseline = 'baseline'
 
 baseline_list = [x for x in data if x[0] == baseline]
+encode_baseline_time = avg([(float(x[4]) + float(x[5])) for x in baseline_list])
+decode_baseline_time = avg([float(x[6]) for x in baseline_list])
 
 for flag in flags:
     if flag == baseline:
@@ -158,23 +160,31 @@ for flag in flags:
     stats = []
     flag_list = [x for x in data if x[0] == flag]
 
-    # index 3 is bitrate, 6-9 correspond to VMAF, PSNR, SSIM, MSSSIM
-    for i in range(6, 10):
+    # index 3 is bitrate, 7-10 correspond to VMAF, PSNR, SSIM, MSSSIM
+    for i in range(7, 11):
         baseline_metric = [(float(x[3]), float(x[i])) for x in baseline_list]
         flag_metric = [(float(x[3]), float(x[i])) for x in flag_list]
         bdrate_stats = round(bdrate(baseline_metric,flag_metric), 3)
         stats.append(bdrate_stats)
     
     # Calculate time percentage difference
-    baseline_time = avg([(float(x[4]) + float(x[5])) for x in baseline_list])
-    flag_time = avg([(float(x[4]) + float(x[5])) for x in flag_list])
-    time_diff = round(((flag_time - baseline_time) / baseline_time * 100), 2)
+    if encode_baseline_time != 0:
+        encode_flag_time = avg([(float(x[4]) + float(x[5])) for x in flag_list])
+        encode_time_diff = round(((encode_flag_time - encode_baseline_time) / encode_baseline_time * 100), 2)
+    else:
+        encode_time_diff = 0
 
-    ls.append((flag, stats[0], stats[1], stats[2], stats[3], time_diff))
+    if decode_baseline_time != 0:
+        decode_flag_time = avg([float(x[6]) for x in flag_list])
+        decode_time_diff = round(((decode_flag_time - decode_baseline_time) / decode_baseline_time * 100), 2)
+    else:
+        decode_time_diff = 0
+
+    ls.append((flag, stats[0], stats[1], stats[2], stats[3], encode_time_diff, decode_time_diff))
 
 ls.sort(key=lambda x: x[1])
 with open (args.output, 'w') as csvfile:
     csvwriter = csv.writer(csvfile, delimiter=',')
-    csvwriter.writerow(['Flag', 'VMAF', 'PSNR', 'SSIM', 'MSSSIM', 'Time Diff Pct'])
+    csvwriter.writerow(['Flag', 'VMAF', 'PSNR', 'SSIM', 'MSSSIM', 'Encode Time Diff Pct', 'Decode Time Diff Pct'])
     for x in ls:
         csvwriter.writerow(x)
