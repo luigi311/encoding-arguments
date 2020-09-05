@@ -130,8 +130,8 @@ def bdrate(metric_set1, metric_set2):
 
     return avg_diff
 
-def avg(lst): 
-    return sum(lst) / len(lst) 
+def avg(lst):
+    return sum(lst) / len(lst)
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--input', '-i', type=Path, help='Input File')
@@ -166,7 +166,7 @@ for flag in flags:
         flag_metric = [(float(x[3]), float(x[i])) for x in flag_list]
         bdrate_stats = round(bdrate(baseline_metric,flag_metric), 3)
         stats.append(bdrate_stats)
-    
+
     # Calculate time percentage difference
     if encode_baseline_time != 0:
         encode_flag_time = avg([(float(x[4]) + float(x[5])) for x in flag_list])
