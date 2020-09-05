@@ -13,7 +13,6 @@ baseline
 --deltaq-mode=0
 --deltaq-mode=2
 --enable-keyframe-filtering=0
---enable-keyframe-filtering=2
 --kf-max-dist=120
 --kf-max-dist=240
 --kf-max-dist=360

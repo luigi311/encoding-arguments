@@ -23,6 +23,7 @@ Encoding Options:
     --pass       [number]   Set amount of passes                                                (default 1)
     --cq                    Use cq mode                                                         (default)
     --vbr                   Use vbr mode
+    --decode                Test decoding speed
 EOF
             )"
             echo "$help"
@@ -37,6 +38,7 @@ CQ=-1
 VBR=-1
 QUALITY=40
 PASS=1
+DECODE=-1
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -113,6 +115,9 @@ while :; do
                 die "ERROR: $1 requires a non-empty argument."
             fi
             ;;
+        --decode)
+            DECODE=1
+            ;;
         --) # End of all options.
             shift
             break
@@ -161,18 +166,29 @@ fi
 mkdir -p "$OUTPUT/${FOLDER}_${TYPE}"
 BASE="ffmpeg -y -hide_banner -loglevel error -i $INPUT -strict -1 -pix_fmt yuv420p10le -f yuv4mpegpipe - | SvtAv1EncApp -i stdin --preset $PRESET --irefresh-type 2 --lp $THREADS $QUALITY_SETTINGS"
 if [ "$PASS" == 1 ]; then
-    FIRST=$(env time --format="Sec %e" bash -c " $BASE -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-    SECOND=0
+    FIRST_TIME=$(env time --format="Sec %e" bash -c " $BASE -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+    SECOND_TIME=0
 elif [ "$PASS" == 2 ]; then
-    FIRST=$(env time --format="Sec %e" bash -c " $BASE --pass 1 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
-    SECOND=$(env time --format="Sec %e" bash -c " $BASE --pass 2 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }')
+    FIRST_TIME=$(env time --format="Sec %e" bash -c " $BASE --pass 1 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG 2>&1" 2>&1 | awk ' /Sec/ { print $2 }') &&
+    SECOND_TIME=$(env time --format="Sec %e" bash -c " $BASE --pass 2 --stats $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log $FLAG -b $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf 2>&1" 2>&1 | awk ' /Sec/ { print $2 }')
 else
     die "Pass $PASS unsupported"
 fi
-ffmpeg -y -hide_banner -loglevel error -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" &&
+
+ERROR=$(ffmpeg -y -hide_banner -loglevel error -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" -c:v copy "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1)
+if [ -n "$ERROR" ]; then
+    rm -rf "$OUTPUT/${FOLDER}_$TYPE"
+    die "$FLAG failed"
+fi
+
+if [ "$DECODE" -ne -1 ]; then
+    DECODE_TIME=$(env time --format="Sec %e" bash -c " dav1d -i $OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf -o /dev/null" 2>&1 | awk ' /Sec/ { print $2 }')
+else
+    DECODE_TIME=0
+fi
 
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.log" &&
 rm -f "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.ivf" &&
 SIZE=$(du "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" | awk '{print $1}') &&
 BITRATE=$(ffprobe -i "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.mkv" 2>&1 | awk ' /bitrate:/ { print $(NF-1) }')
-echo -n "$FLAGSSTAT,$SIZE,$TYPE,$BITRATE,$FIRST,$SECOND," > "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.stats"
+echo -n "$FLAGSSTAT,$SIZE,$TYPE,$BITRATE,$FIRST_TIME,$SECOND_TIME,$DECODE_TIME," > "$OUTPUT/${FOLDER}_$TYPE/${FOLDER}_$TYPE.stats"
