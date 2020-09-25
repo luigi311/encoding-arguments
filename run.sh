@@ -271,7 +271,7 @@ if [ "$QUALITY" == -1 ]; then
 fi
 
 if [ "$FLAGS" == -1 ]; then
-    FLAGS="arguments/arguments.${ENCODER}"
+    FLAGS="arguments/arguments_${ENCODER}"
 fi
 
 # Check if files exist
@@ -288,14 +288,15 @@ else
     parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
-echo "Calculating Metrics" &&
+echo "Calculating Metrics"
 find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
 
-echo "Creating CSV" &&
+echo "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
 find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
 find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
 
 if [ "$BD" -ne -1 ]; then
+    echo "Calculating bd_rates"
     scripts/bd_features.py --input "$CSV" --output "${CSV%.csv}_bd_rates.csv"
 fi

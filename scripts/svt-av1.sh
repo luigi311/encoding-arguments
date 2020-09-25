@@ -138,7 +138,7 @@ fi
 # Original Flags used for CSV
 FLAGSSTAT="$FLAG"
 # Remove any potential characters that might cause issues in folder names
-FOLDER1=$(echo "$FLAG" | sed ' s/--//g; s/=//g; s/ //g; s/:/_/g')
+FOLDER1=$(echo "$FLAG" | sed ' s/--//g; s/=//g; s/ //g; s/:/_/g; ')
 # Get last 120 characters of flags for folder name to prevent length issues
 if [ "${#FOLDER1}" -ge 120 ]; then
     FOLDER=${FOLDER1: -120}
