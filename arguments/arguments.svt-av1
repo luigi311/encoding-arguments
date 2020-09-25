@@ -142,7 +142,3 @@ baseline
 --mds-2-3-class-th 50
 --mds-2-3-cand-th 0
 --mds-2-3-cand-th 30
---intrabc-mode 0
---intrabc-mode 1
---intrabc-mode 2
---intrabc-mode 3

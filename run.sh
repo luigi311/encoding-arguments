@@ -20,7 +20,7 @@ General Options:
     -o/--output         [folder]    Output folder to place all encoded videos and stats files       (default output)
     --bd                [file]      File that contains different qualities to test for bd_rate
     -c/--csv            [file]      CSV file to output final stats for all encodes to               (default stats.csv)
-    -e/--encworkers     [number]    Number of encodes to run simultaneously                         (defaults aom threads/encoding threads, x265 threads/2)
+    -e/--encworkers     [number]    Number of encodes to run simultaneously                         (defaults threads/encoding threads)
     -m/--metricworkers  [number]    Number of vmaf calculations to run simultaneously               (defaults 1)
     --resume                        Resume option for parallel, will use encoding.log and vmaf.log  (default false)
 Encoding Settings:
@@ -271,13 +271,7 @@ if [ "$QUALITY" == -1 ]; then
 fi
 
 if [ "$FLAGS" == -1 ]; then
-    if [ "$ENCODER" == "aomenc" ]; then
-        FLAGS="arguments.aomenc"
-    elif [ "$ENCODER" == "svt-av1" ]; then
-        FLAGS="arguments.svt-av1"
-    elif [ "$ENCODER" == "x265" ]; then
-        FLAGS="arguments.x265"
-    fi
+    FLAGS="arguments/arguments.${ENCODER}"
 fi
 
 # Check if files exist
