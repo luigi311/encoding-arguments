@@ -18,12 +18,12 @@ default:
     - apt-get update && apt-get install -y parallel time gawk jq python3 python3-pip python-is-python3
     - pip3 install numpy
     # Grab first two arguments to test only
-    - mv arguments.aomenc arguments.temp
-    - head -n 2 arguments.temp > arguments.aomenc
-    - mv arguments.x265 arguments.temp
-    - head -n 2 arguments.temp > arguments.x265
-    - mv arguments.svt-av1 arguments.temp
-    - head -n 2 arguments.temp > arguments.svt-av1
+    - mv arugments/arguments.aomenc arguments/arguments.temp
+    - head -n 2 arguments/arguments.temp > arguments/arguments.aomenc
+    - mv arguments/arguments.x265 arguments/arguments.temp
+    - head -n 2 arguments/arguments.temp > arguments/arguments.x265
+    - mv arguments/arguments.svt-av1 arguments/arguments.temp
+    - head -n 2 arguments/arguments.temp > arguments/arguments.svt-av1
     # Download test videos from SVT-AV1
     - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
     - tar xf video.tar.gz
