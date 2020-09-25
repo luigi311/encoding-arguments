@@ -9,8 +9,10 @@
 !*.sh
 !*.py
 
-# Whitelist arguments file
+# Whitelist support file
 !arguments/*
+!steps/*
+!scripts/*
 
 # Ignore personal scripts
 personal
