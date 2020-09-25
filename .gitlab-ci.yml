@@ -33,13 +33,13 @@ stages:
 
 validation-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --quality 40 --preset 6 --enc aomenc
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.aomenc --threads 2 --q --quality 40 --preset 6 --enc aomenc
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 bd_rate-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps/steps.aomenc --preset 6 --enc aomenc
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.aomenc --threads 2 --q --bd steps/steps.aomenc --preset 6 --enc aomenc
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
@@ -53,13 +53,13 @@ simple-aomenc:
 
 validation-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --quality 40 --preset 8 --enc svt-av1
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.svt-av1 --threads 4 --cq --quality 40 --preset 8 --enc svt-av1
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 bd_rate-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --bd steps/steps.svt-av1 --preset 8 --enc svt-av1
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.svt-av1 --threads 4 --cq --bd steps/steps.svt-av1 --preset 8 --enc svt-av1
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
@@ -73,13 +73,13 @@ simple-svt-av1:
 
 validation-x265:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --quality 40 --preset 0 --enc x265
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.x265 --threads 2 --crf --quality 40 --preset 0 --enc x265
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 bd_rate-x265:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --bd steps/steps.x265 --preset 0 --enc x265
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments.x265 --threads 2 --crf --bd steps/steps.x265 --preset 0 --enc x265
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
