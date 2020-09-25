@@ -18,7 +18,7 @@ default:
     - apt-get update && apt-get install -y parallel time gawk jq python3 python3-pip python-is-python3
     - pip3 install numpy
     # Grab first two arguments to test only
-    - mv arugments/arguments.aomenc arguments/arguments.temp
+    - mv arguments/arguments.aomenc arguments/arguments.temp
     - head -n 2 arguments/arguments.temp > arguments/arguments.aomenc
     - mv arguments/arguments.x265 arguments/arguments.temp
     - head -n 2 arguments/arguments.temp > arguments/arguments.x265
