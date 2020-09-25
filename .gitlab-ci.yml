@@ -39,14 +39,14 @@ validation-aomenc:
 
 bd_rate-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps --preset 6 --enc aomenc
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.aomenc --threads 2 --q --bd steps/steps.aomenc --preset 6 --enc aomenc
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 simple-aomenc:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps --enc aomenc --decode
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps.aomenc --enc aomenc --decode
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
@@ -59,14 +59,14 @@ validation-svt-av1:
 
 bd_rate-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --bd steps --preset 8 --enc svt-av1
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.svt-av1 --threads 4 --cq --bd steps/steps.svt-av1 --preset 8 --enc svt-av1
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 simple-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps --enc svt-av1 --decode
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps.svt-av1 --enc svt-av1 --decode
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
@@ -79,14 +79,14 @@ validation-x265:
 
 bd_rate-x265:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --bd steps --preset 0 --enc x265
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments.x265 --threads 2 --crf --bd steps/steps.x265 --preset 0 --enc x265
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 simple-x265:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps --enc x265 --decode
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps.x265 --enc x265 --decode
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
