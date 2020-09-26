@@ -35,9 +35,17 @@ encoders:
   script:
     - behave --tags=encoders
 
-bd_rate:
+bd_rate_x265:
   script:
-    - behave --tags=bdrates
+    - behave --tags=bdrates_x265
+  
+bd_rate_aomenc:
+  script:
+    - behave --tags=bdrates_aomenc
+
+bd_rate_svt-av1:
+  script:
+    - behave --tags=bdrates_svt-av1
 
 validation-aomenc:
   script:

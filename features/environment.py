@@ -10,9 +10,10 @@ videoDownload="https://raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resourc
 
 
 def startup(context):
+    cleanup(f"{context.outFolder}")
     Path(context.outFolder).mkdir(parents=True, exist_ok=True)
     urlretrieve(videoDownload, f"{context.outFolder}/video.tar.gz")
-    tar = tarfile.open('video.tar.gz')
+    tar = tarfile.open(f"{context.outFolder}/video.tar.gz")
     tar.extractall(context.outFolder)
     tar.close()
     

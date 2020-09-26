@@ -24,17 +24,17 @@ General Options:
     -o/--output         [folder]    Output folder to place all encoded videos and stats files       (default output)
     --bd                [file]      File that contains different qualities to test for bd_rate
     -c/--csv            [file]      CSV file to output final stats for all encodes to               (default stats.csv)
-    -e/--encworkers     [number]    Number of encodes to run simultaneously                         (defaults threads/encoding threads)
+    -e/--encworkers     [number]    Number of encodes to run simultaneously                         (defaults cpu threads/encoding threads)
     -m/--metricworkers  [number]    Number of vmaf calculations to run simultaneously               (defaults 1)
-    --resume                        Resume option for parallel, will use encoding.log and vmaf.log  (default false)
+    --resume                        Resume option for parallel, will use encoding.log and vmaf.log
 Encoding Settings:
     --enc               [string]    Encoder to test, supports aomenc and x265                       (default aomenc)
-    -f/--flags          [file]      File with different flags to test. Each line is a seperate test (default arguments.aomenc)
-    -t/--threads        [number]    Amount of aomenc threads each encode should use                 (default 4)
-    --quality           [number]    Bitrate for vbr, cq-level for q/cq mode, crf level for crf      (default 50)
-    --preset            [number]    Set cpu-used/preset used by encoder                             (default 6)
+    -f/--flags          [file]      File with different flags to test. Each line is a seperate test
+    -t/--threads        [number]    Amount of aomenc threads each encode should use
+    --quality           [number]    Bitrate for vbr, cq-level for q/cq mode, crf level for crf      (default 45)
+    --preset            [number]    Set cpu-used/preset used by encoder
     --pass              [number]    Set amount of passes for encoder
-    --q                             Use q mode   (applies to aomenc only)                           (default for aomenc)
+    --q                             Use q mode   (applies to aomenc only)                           (default for aomenc, svt-av1)
     --cq                            Use cq mode  (applies to aomenc only)
     --vbr                           Use vbr mode (applies to aomenc/x265 only)
     --crf                           Use crf mode (applies to x265 only)                             (default for x265)
@@ -286,13 +286,13 @@ fi
 # Run encoding scripts
 echoerr "Encoding"
 if [ "$BD" -eq -1 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
 echoerr "Calculating Metrics"
-find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --eta scripts/calculate_metrics.sh {} "$INPUT"
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
 
 echoerr "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&

@@ -70,10 +70,11 @@ def step_impl(context, less_greater_equal):
                 column[h].append(v)
     
     vmaf = float(column["VMAF"][0])
+    print(f"VMAF: {vmaf}")
 
-    if less_greater_equal == "worse":
+    if less_greater_equal == "better":
         assert vmaf < 0
-    elif less_greater_equal == "better":
+    elif less_greater_equal == "worse":
         assert vmaf > 0
     elif less_greater_equal == "same":
         assert vmaf == 0
