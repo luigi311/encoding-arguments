@@ -57,13 +57,13 @@ simple-aomenc:
 
 validation-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --cq --quality 40 --preset 8 --enc svt-av1
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --q --quality 40 --preset 8 --enc svt-av1
     - cat stats.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
 bd_rate-svt-av1:
   script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --cq --bd steps/steps_svt-av1 --preset 8 --enc svt-av1
+    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --q --bd steps/steps_svt-av1 --preset 8 --enc svt-av1
     - cat stats.csv
     - cat stats_bd_rates.csv
     - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
