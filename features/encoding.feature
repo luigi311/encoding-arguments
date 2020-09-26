@@ -20,18 +20,18 @@ Feature: Run
 
     @bdrates_x265
     Examples: x265
-      | flag                     | encoder | worse_better_same |
-      | no-cutree=1              | x265    | worse             |
-      | aq-mode=1:aq-strength=2  | x265    | better            |
+      | flag                      | encoder | worse_better_same |
+      | no-cutree=1               | x265    | worse             |
+      | aq-mode=1:aq-strength=2   | x265    | better            |
 
     @bdrates_aomenc
     Examples: aomenc
-      | flag                     | encoder | worse_better_same |
-      | --min-partition-size=128 | aomenc  | worse             |
-      | --enable-cdef=0          | aomenc  | better            |
+      | flag                      | encoder | worse_better_same |
+      | --min-partition-size=128  | aomenc  | worse             |
+      | --enable-cdef=0           | aomenc  | better            |
 
     @bdrates_svt-av1
     Examples: svt-av1
-      | flag                     | encoder | worse_better_same |
-      | --enable-nsq-table-use 1 | svt-av1 | worse             |
-      | --compound 0             | svt-av1 | better            |
+      | flag                      | encoder | worse_better_same |
+      | --film-grain 50           | svt-av1 | worse             |
+      | --cdef-level 5            | svt-av1 | better            |
