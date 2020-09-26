@@ -2,7 +2,7 @@
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 die() {
-    printf '%s\n' "$1" >&2
+    printf 'ERROR: %s\n' "$1" >&2
     exit 1
 }
 
@@ -53,7 +53,7 @@ while :; do
                 INPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -o | --output)
@@ -61,7 +61,7 @@ while :; do
                 OUTPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -t | --threads)
@@ -69,7 +69,7 @@ while :; do
                 THREADS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -f | --flag)
@@ -77,7 +77,7 @@ while :; do
                 FLAG="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --q)
@@ -104,7 +104,7 @@ while :; do
                 QUALITY="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --preset)
@@ -112,7 +112,7 @@ while :; do
                 PRESET="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --pass)
@@ -120,7 +120,7 @@ while :; do
                 PASS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --decode)
@@ -131,7 +131,7 @@ while :; do
             break
             ;;
         -?*)
-            echo "Unknown option: $1 ignored"
+            die "Invalid flag $1"
             ;;
         *) # Default case: No more options, so break out of the loop.
             break ;;

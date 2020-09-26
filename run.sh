@@ -2,7 +2,7 @@
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 die() {
-    printf '%s\n' "$1" >&2
+    printf 'ERROR: %s\n' "$1" >&2
     exit 1
 }
 
@@ -68,7 +68,7 @@ while :; do
                 INPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         -o | --output)
@@ -76,7 +76,7 @@ while :; do
                 OUTPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         --enc)
@@ -88,7 +88,7 @@ while :; do
                 fi
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         -c | --csv)
@@ -96,7 +96,7 @@ while :; do
                 CSV="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         -e | --encworkers)
@@ -105,7 +105,7 @@ while :; do
                 MANUAL=1
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         -m | --metricworkers)
@@ -113,7 +113,7 @@ while :; do
                 METRIC_WORKERS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         --resume)
@@ -124,7 +124,7 @@ while :; do
                 FLAGS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         -t | --threads)
@@ -132,7 +132,7 @@ while :; do
                 THREADS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         --q)
@@ -166,7 +166,7 @@ while :; do
                 QUALITY="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         --bd)
@@ -180,7 +180,7 @@ while :; do
                 fi
                 shift
             else
-                die "ERROR: $1 requires a non-empty option argument."
+                die "$1 requires a non-empty option argument."
             fi
             ;;
         --preset)
@@ -188,7 +188,7 @@ while :; do
                 PRESET="--preset $2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --pass)
@@ -196,7 +196,7 @@ while :; do
                 PASS="--pass $2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --decode)
@@ -207,7 +207,7 @@ while :; do
             break
             ;;
         -?*)
-            die "Error: Unknown option : $1"
+            die "Unknown option : $1"
             ;;
         *) # Default case: No more options, so break out of the loop.
             break ;;
@@ -232,13 +232,13 @@ fi
 
 # Set encoding settings
 if [ "$Q" -ne -1 ]; then
-    if [ "$ENCODER" == "aomenc" ]; then
+    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ]; then
         ENCODING="--q"
     else
         die "q is not supported by $ENCODER"
     fi
 elif [ "$CQ" -ne -1 ]; then
-    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ]; then
+    if [ "$ENCODER" == "aomenc" ] ; then
         ENCODING="--cq"
     else
         die "cq is not supported by $ENCODER"
@@ -256,12 +256,10 @@ elif [ "$CRF" -ne -1 ]; then
         die "crf is not supported by $ENCODER"
     fi
 else
-    if [ "$ENCODER" == "aomenc" ]; then
+    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ]; then
         ENCODING="--q"
     elif [ "$ENCODER" == "x265" ]; then
         ENCODING="--crf"
-    elif [ "$ENCODER" == "svt-av1" ]; then
-        ENCODING="--cq"
     fi
 fi
 
@@ -282,14 +280,15 @@ elif [ ! -f "$FLAGS" ]; then
 fi
 
 # Run encoding scripts
+echo "Encoding"
 if [ "$BD" -eq -1 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
 echo "Calculating Metrics"
-find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --eta scripts/calculate_metrics.sh {} "$INPUT"
 
 echo "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&

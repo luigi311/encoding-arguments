@@ -14,5 +14,8 @@
 !steps/*
 !scripts/*
 
+# Whitelist behave
+!features/*
+
 # Ignore personal scripts
 personal

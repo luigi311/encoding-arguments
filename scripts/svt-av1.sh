@@ -2,7 +2,7 @@
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 die() {
-    printf '%s\n' "$1" >&2
+    printf 'ERROR: %s\n' "$1" >&2
     exit 1
 }
 
@@ -21,7 +21,7 @@ Encoding Options:
     --quality    [number]   Bitrate for vbr, cq-level for q/cq mode, crf                        (default 50)
     --preset     [number]   Set encoding preset, higher is faster                               (default 6)
     --pass       [number]   Set amount of passes                                                (default 1)
-    --cq                    Use cq mode                                                         (default)
+    --q                     Use q mode                                                         (default)
     --vbr                   Use vbr mode
     --decode                Test decoding speed
 EOF
@@ -34,7 +34,7 @@ INPUT="video.mkv"
 FLAG="baseline"
 THREADS=-1
 PRESET=8
-CQ=-1
+Q=-1
 VBR=-1
 QUALITY=40
 PASS=1
@@ -52,7 +52,7 @@ while :; do
                 INPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -o | --output)
@@ -60,7 +60,7 @@ while :; do
                 OUTPUT="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -t | --threads)
@@ -68,7 +68,7 @@ while :; do
                 THREADS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         -f | --flag)
@@ -76,18 +76,18 @@ while :; do
                 FLAG="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
-        --cq)
+        --q)
             if [ "$VBR" -ne -1 ]; then
-                die "Can not set VBR and CQ at the same time"
+                die "Can not set VBR and Q at the same time"
             fi
-            CQ=1
+            Q=1
             ;;
         --vbr)
-            if [ "$CQ" -ne -1 ]; then
-                die "Can not set VBR and CQ at the same time"
+            if [ "$Q" -ne -1 ]; then
+                die "Can not set VBR and Q at the same time"
             fi
             VBR=1
             ;;
@@ -96,7 +96,7 @@ while :; do
                 QUALITY="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --preset)
@@ -104,7 +104,7 @@ while :; do
                 PRESET="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --pass)
@@ -112,7 +112,7 @@ while :; do
                 PASS="$2"
                 shift
             else
-                die "ERROR: $1 requires a non-empty argument."
+                die "$1 requires a non-empty argument."
             fi
             ;;
         --decode)
@@ -123,7 +123,7 @@ while :; do
             break
             ;;
         -?*)
-            echo "Unknown option: $1 ignored"
+            die "Invalid flag $1"
             ;;
         *) # Default case: No more options, so break out of the loop.
             break ;;
@@ -151,15 +151,15 @@ if [ "$FLAG" == "baseline" ]; then
     FLAG=""
 fi
 
-# Set the encoding mode of cq/vbr along with a default
-if [ "$CQ" -ne -1 ]; then
-    TYPE="cq${QUALITY}"
+# Set the encoding mode of q/vbr along with a default
+if [ "$Q" -ne -1 ]; then
+    TYPE="q${QUALITY}"
     QUALITY_SETTINGS="--rc 0 -q ${QUALITY}"
 elif [ "$VBR" -ne -1 ]; then
     TYPE="vbr${QUALITY}"
     QUALITY_SETTINGS="--rc 1 --tbr ${QUALITY}"
 else
-    TYPE="cq${QUALITY}"
+    TYPE="q${QUALITY}"
     QUALITY_SETTINGS="--rc 0 -q ${QUALITY}"
 fi
 
