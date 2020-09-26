@@ -6,6 +6,10 @@ die() {
     exit 1
 }
 
+echoerr() { 
+    printf '%s\n' "$1" >&2
+}
+
 help() {
     help="$(cat <<EOF
 Test multiple encoding flags simultaneously, will gather stats such as file size, duration of first pass and second pass,
@@ -280,22 +284,22 @@ elif [ ! -f "$FLAGS" ]; then
 fi
 
 # Run encoding scripts
-echo "Encoding"
+echoerr "Encoding"
 if [ "$BD" -eq -1 ]; then
     parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
 else
     parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --eta -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
-echo "Calculating Metrics"
+echoerr "Calculating Metrics"
 find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --eta scripts/calculate_metrics.sh {} "$INPUT"
 
-echo "Creating CSV"
+echoerr "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
 find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
 find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
 
 if [ "$BD" -ne -1 ]; then
-    echo "Calculating bd_rates"
+    echoerr "Calculating bd_rates"
     scripts/bd_features.py --input "$CSV" --output "${CSV%.csv}_bd_rates.csv"
 fi

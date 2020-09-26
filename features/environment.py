@@ -16,8 +16,8 @@ def startup(context):
     tar.extractall(context.outFolder)
     tar.close()
     
-def cleanup(context):
-    dirpath = f"{context.outFolder}"
+def cleanup(folder):
+    dirpath = folder
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
         shutil.rmtree(dirpath)
 
@@ -25,5 +25,8 @@ def before_all(context):
     context.outFolder = outFolder
     startup(context)
 
+def after_scenario(context, scenario):
+    cleanup(f"{context.outFolder}/{context.encoder}")
+
 def after_all(context):
-    context.add_cleanup(cleanup, context)
+    context.add_cleanup(cleanup, context.outFolder)
