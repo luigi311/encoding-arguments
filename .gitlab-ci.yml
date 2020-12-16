@@ -11,7 +11,7 @@ code_quality:
 
 # Script testing
 default:
-  image: registry.gitlab.com/luigi311/av1-docker:latest
+  image: registry.gitlab.com/luigi311/encoders-docker:latest
   before_script:
     - export DEBIAN_FRONTEND=noninteractive
     # Install Dependencies
