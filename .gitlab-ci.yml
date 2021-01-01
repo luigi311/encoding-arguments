@@ -43,12 +43,20 @@ default:
     if [ "$SIMPLE" -eq 1 ]; then
       ./run.sh --input bus_cif.y4m --output output --csv stats.csv --enc ${ENCODER}
     else
-      BASE="./run.sh --input bus_cif.y4m --output output --csv stats.csv --encworkers 2 --metricworkers 1 --flags arguments/arguments_${ENCODER} --threads 2 --q --preset 6 --enc ${ENCODER}"
+      BASE="./run.sh --input bus_cif.y4m --output output --csv stats.csv --encworkers 2 --metricworkers 1 --flags arguments/arguments_${ENCODER} --threads 2 --preset 6 --enc ${ENCODER}"
 
       if [ "$BDRATE" -eq 1 ]; then
         QUALITY="--bd steps/steps_${ENCODER}"
       else
         QUALITY="--quality 40"
+      fi
+      
+      if [ "$ENCODER" == "aomenc" ]; then
+        QUALITY="$QUALITY --q"
+      elif [ "$ENCODER" == "svt-av1" ]; then
+        QUALITY="$QUALITY --cq"
+      elif [ "$ENCODER" == "x265" ]; then
+        QUALITY="$QUALITY --crf"
       fi
 
       $BASE $QUALITY
