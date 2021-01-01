@@ -33,19 +33,19 @@ default:
     cat stats.csv
     if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
 
-    if [ "$BDRATE" -eq 1 ]; then
+    if [ ! -z "${BDRATE+x}" ]; then
       cat stats_bd_rates.csv
       if [ "$(grep -c '^,\|,,\|,$' stats_bd_rates.csv)" -ge 1 ]; then exit 1; fi
     fi
 
 .tester:
   script: &tester |
-    if [ "$SIMPLE" -eq 1 ]; then
+    if [ ! -z "${SIMPLE+x}" ]; then
       ./run.sh --input bus_cif.y4m --output output --csv stats.csv --enc ${ENCODER}
     else
       BASE="./run.sh --input bus_cif.y4m --output output --csv stats.csv --encworkers 2 --metricworkers 1 --flags arguments/arguments_${ENCODER} --threads 2 --preset 6 --enc ${ENCODER}"
 
-      if [ "$BDRATE" -eq 1 ]; then
+      if [ ! -z "${BDRATE+x}" ]; then
         QUALITY="--bd steps/steps_${ENCODER}"
       else
         QUALITY="--quality 40"
