@@ -53,6 +53,8 @@ CRF=-1
 QUALITY=-1
 MANUAL=0
 BD=-1
+SAMPLES=-1
+SAMPLETIME=60
 ENCODER="aomenc"
 SUPPORTED_ENCODERS="aomenc:x265:svt-av1"
 
@@ -202,6 +204,25 @@ while :; do
         --decode)
             DECODE="--decode"
             ;;
+        --samples)
+            if [ "$2" ]; then
+                SAMPLES="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
+        --sampletime)
+            if [ "$2" ]; then
+                SAMPLETIME="$2"
+                shift
+            else
+                die "ERROR: $1 requires a non-empty argument."
+            fi
+            ;;
+        --distribute)
+            DISTRIBUTE="--sshloginfile .. --workdir . --sshdelay 0.2"
+            ;;
         --) # End of all options.
             shift
             break
@@ -281,15 +302,42 @@ elif [ ! -f "$FLAGS" ]; then
     die "$FLAGS file does not exist"
 fi
 
+if [ "$SAMPLES" -ne -1 ]; then
+    echo "Creating Sample"
+    mkdir -p split
+    ffmpeg -y -hide_banner -loglevel error -i "$INPUT" -c copy -map 0:v -segment_time $SAMPLETIME -f segment split/%05d.mkv
+    COUNT=$(( $(find split | wc -l ) - 2 ))
+    if [ $COUNT -eq 0 ]; then COUNT=1; fi
+    INCR=$((COUNT / SAMPLES))
+    if [ $INCR -eq 0 ]; then INCR=1; fi
+    for ((COUNTER=0; COUNTER<COUNT; COUNTER++))
+    do
+        if [ "$COUNTER" -eq 0 ]; then
+          GLOBIGNORE=$(printf "%0*d.mkv" 5 "$COUNTER")
+        elif (( COUNTER % INCR == 0 )); then
+          GLOBIGNORE+=$(printf ":%0*d.mkv" 5 "$COUNTER")
+        fi
+    done
+    (
+      cd split || exit
+      rm *
+      find ./*.mkv | sed 's:\ :\\\ :g' | sed 's/.\///' |sed 's/^/file /' | sed 's/mkv/mkv\nduration '$SAMPLETIME'/' > concat.txt; ffmpeg -y -hide_banner -loglevel error -f concat -i concat.txt -c copy output.mkv; rm concat.txt
+      mv output.mkv ../
+    )
+    rm -rf split
+    INPUT="output.mkv"
+fi
+
+echo "Encoding"
 # Run encoding scripts
 if [ "$BD" -eq -1 ]; then
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
 else
-    parallel -j "$ENC_WORKERS" --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
 fi
 
 echo "Calculating Metrics"
-find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" $DISTRIBUTE --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
 
 echo "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
