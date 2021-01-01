@@ -62,7 +62,8 @@ default:
       $BASE $QUALITY
     fi
 
-    validate
+  after_script:
+    - *validate
 
 stages:
   - test
