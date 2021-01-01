@@ -32,7 +32,7 @@ default:
   script: &validate |
     cat stats.csv
     if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
-    
+
     if [ "$BDRATE" -eq 1 ]; then
       cat stats_bd_rates.csv
       if [ "$(grep -c '^,\|,,\|,$' stats_bd_rates.csv)" -ge 1 ]; then exit 1; fi
@@ -54,7 +54,7 @@ default:
       $BASE $QUALITY
     fi
 
-    &validate
+    *validate
 
 stages:
   - test
