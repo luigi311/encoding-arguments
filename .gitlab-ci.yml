@@ -54,7 +54,7 @@ default:
       $BASE $QUALITY
     fi
 
-    *validate
+    validate
 
 stages:
   - test
