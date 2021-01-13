@@ -353,7 +353,6 @@ if [ "$SAMPLES" -ne -1 ]; then
 fi
 
 echo "Encoding"
- Run encoding scripts
 if [ "$BD" -eq -1 ]; then
     parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" $PRESET $PASS $DECODE
 else
