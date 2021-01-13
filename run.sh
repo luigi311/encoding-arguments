@@ -46,17 +46,19 @@ INPUT="video.mkv"
 CSV="stats.csv"
 METRIC_WORKERS=1
 THREADS=-1
+N_THREADS=-1
 Q=-1
 CQ=-1
 VBR=-1
 CRF=-1
+CBR=-1
 QUALITY=-1
 MANUAL=0
 BD=-1
 SAMPLES=-1
 SAMPLETIME=60
 ENCODER="aomenc"
-SUPPORTED_ENCODERS="aomenc:x265:svt-av1"
+SUPPORTED_ENCODERS="aomenc:svt-av1:x265:x264"
 
 # Source: http://mywiki.wooledge.org/BashFAQ/035
 while :; do
@@ -138,28 +140,34 @@ while :; do
             fi
             ;;
         --q)
-            if [ "$VBR" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+            if [ "$VBR" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ] || [ "$CBR" -ne -1 ]; then
                 die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             Q=1
             ;;
         --cq)
-            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CRF" -ne -1 ] || [ "$CBR" -ne -1 ]; then
                 die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             CQ=1
             ;;
         --vbr)
-            if [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ]; then
+            if [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ] || [ "$CBR" -ne -1 ]; then
                 die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             VBR=1
             ;;
         --crf)
-            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ]; then
+            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CBR" -ne -1 ]; then
                 die "Can not set VBR, CQ, q and CRF at the same time"
             fi
             CRF=1
+            ;;
+        --cbr)
+            if [ "$VBR" -ne -1 ] || [ "$Q" -ne -1 ] || [ "$CQ" -ne -1 ] || [ "$CRF" -ne -1 ] ; then
+                die "Can not set VBR, CQ, q and CRF at the same time"
+            fi
+            CBR=1
             ;;
         --quality)
             if [ "$BD" -ne -1 ]; then
@@ -243,12 +251,21 @@ if [ "$THREADS" -eq -1 ]; then
         THREADS=$(( 18 < $(nproc) ? 18 : $(nproc) ))
     elif [ "$ENCODER" == "x265" ]; then
         THREADS=$(( 32 < $(nproc) ? 32 : $(nproc) ))
+    elif [ "$ENCODER" == "x264" ]; then
+        THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
+    else
+        die "Threads not set"
     fi
+fi
+
+if [ "$N_THREADS" -eq -1 ]; then
+    N_THREADS=$(( 8 < $(nproc) ? 8 : $(nproc) ))
 fi
 
 # Set job amounts for encoding
 if [ "$MANUAL" -ne 1 ]; then
     ENC_WORKERS=$(( ($(nproc) / "$THREADS") ))
+    METRIC_WORKERS=$(( ($(nproc) / "$N_THREADS") ))
 fi
 
 # Set encoding settings
@@ -265,21 +282,28 @@ elif [ "$CQ" -ne -1 ]; then
         die "cq is not supported by $ENCODER"
     fi
 elif [ "$VBR" -ne -1 ]; then
-    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ] || [ "$ENCODER" == "x265" ]; then
+    if [ "$ENCODER" == "aomenc" ] || [ "$ENCODER" == "svt-av1" ] || [ "$ENCODER" == "x265" ] || [ "$ENCODER" == "x264" ]; then
         ENCODING="--vbr"
     else
         die "vbr is not supported by $ENCODER"
     fi
 elif [ "$CRF" -ne -1 ]; then
-    if [ "$ENCODER" == "x265" ]; then
+    if [ "$ENCODER" == "x265" ] || [ "$ENCODER" == "x264" ]; then
         ENCODING="--crf"
     else
         die "crf is not supported by $ENCODER"
     fi
+elif [ "$CBR" -ne -1 ]; then
+    # TODO: Implement CBR on all encoders
+    if [ "$ENCODER" == "x264" ]; then
+        ENCODING="--cbr"
+    else
+        die "cbr is not supported by $ENCODER"
+    fi
 else
     if [ "$ENCODER" == "aomenc" ]; then
         ENCODING="--q"
-    elif [ "$ENCODER" == "x265" ]; then
+    elif [ "$ENCODER" == "x265" ] || [ "$ENCODER" == "x264" ]; then
         ENCODING="--crf"
     elif [ "$ENCODER" == "svt-av1" ]; then
         ENCODING="--cq"
@@ -287,7 +311,7 @@ else
 fi
 
 # Default quality setting if not manually set
-if [ "$QUALITY" == -1 ]; then
+if [ "$QUALITY" -eq -1 ]; then
     QUALITY=45
 fi
 
@@ -329,18 +353,18 @@ if [ "$SAMPLES" -ne -1 ]; then
 fi
 
 echo "Encoding"
-# Run encoding scripts
+ Run encoding scripts
 if [ "$BD" -eq -1 ]; then
-    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "$QUALITY" --flag "{1}" $PRESET $PASS $DECODE
 else
-    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" "$PRESET" "$PASS" "$DECODE"
+    parallel -j "$ENC_WORKERS" $DISTRIBUTE --joblog encoding.log $RESUME --bar -a "$BD_FILE" -a "$FLAGS" "scripts/${ENCODER}.sh" --input "$INPUT" --output "$OUTPUT" --threads "$THREADS" "$ENCODING" --quality "{1}" --flag "{2}" $PRESET $PASS $DECODE
 fi
 
 echo "Calculating Metrics"
 find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" $DISTRIBUTE --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
 
 echo "Creating CSV"
-echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF, PSNR, SSIM, MSSSIM" > "$CSV" &&
+echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF" > "$CSV" &&
 find "$OUTPUT" -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV" &&
 find "$OUTPUT" -name '*.stats' -not -name 'baseline*.stats' -exec awk '{print $0}' {} + >> "$CSV"
 

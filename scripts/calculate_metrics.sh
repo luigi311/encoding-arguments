@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 
-FILE=${1%.mkv} &&
-LOG=$(ffmpeg -hide_banner -loglevel error -r 60 -i "$1" -r 60 -i "$2" -filter_complex "libvmaf=psnr=1:ssim=1:ms_ssim=1:log_path=${FILE}.json:log_fmt=json" -f null - 2>&1)
+# Source: http://mywiki.wooledge.org/BashFAQ/035
+die() {
+    printf '%s\n' "$1" >&2
+    #exit 1
+}
 
-if [ -n "$LOG" ]; then
-    printf '%s\n' "$LOG"
+N_THREADS=-1
+
+if [ "$N_THREADS" -eq -1 ]; then
+    N_THREADS=$(( 8 < $(nproc) ? 8 : $(nproc) ))
 fi
 
-VMAF=$(jq '.["VMAF score"]' "${FILE}".json) &&
-PSNR=$(jq '.["PSNR score"]' "${FILE}".json) &&
-SSIM=$(jq '.["SSIM score"]' "${FILE}".json) &&
-MSSSIM=$(jq '.["MS-SSIM score"]' "${FILE}".json)
-echo -n "$VMAF,$PSNR,$SSIM,$MSSSIM" >> "$FILE.stats"
+FILE=${1%.mkv} &&
+LOG=$(ffmpeg -hide_banner -loglevel error -r 60 -i "$1" -r 60 -i "$2" -filter_complex "libvmaf=log_path=${FILE}.json:log_fmt=json:n_threads=${N_THREADS}" -f null - 2>&1)
+
+if [ -n "$LOG" ]; then
+    die "$LOG"
+fi
+
+VMAF=$(jq '.["pooled_metrics"]["vmaf"]["mean"]' "${FILE}".json)
+
+echo -n "$VMAF" >> "$FILE.stats"
