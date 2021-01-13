@@ -118,3 +118,20 @@ simple-x265:
     ENCODER: "x265"
     SIMPLE: 1
   extends: .tester
+
+validation-x264:
+  variables:
+    ENCODER: "x264"
+  extends: .tester
+
+bd_rate-x264:
+  variables:
+    ENCODER: "x264"
+    BDRATE: 1
+  extends: .tester
+  
+simple-x264:
+  variables:
+    ENCODER: "x264"
+    SIMPLE: 1
+  extends: .tester
