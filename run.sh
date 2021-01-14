@@ -246,26 +246,28 @@ done
 
 if [ "$THREADS" -eq -1 ]; then
     if [ "$ENCODER" == "aomenc" ]; then
-        THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
+        THREADS=4
     elif [ "$ENCODER" == "svt-av1" ]; then
-        THREADS=$(( 18 < $(nproc) ? 18 : $(nproc) ))
+        THREADS=18
     elif [ "$ENCODER" == "x265" ]; then
-        THREADS=$(( 32 < $(nproc) ? 32 : $(nproc) ))
+        THREADS=4
     elif [ "$ENCODER" == "x264" ]; then
-        THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
+        THREADS=4
     else
         die "Threads not set"
     fi
 fi
 
 if [ "$N_THREADS" -eq -1 ]; then
-    N_THREADS=$(( 8 < $(nproc) ? 8 : $(nproc) ))
+    N_THREADS=8
 fi
 
 # Set job amounts for encoding
 if [ "$MANUAL" -ne 1 ]; then
-    ENC_WORKERS=$(( ($(nproc) / "$THREADS") ))
-    METRIC_WORKERS=$(( ($(nproc) / "$N_THREADS") ))
+    ENC_WORKERS=$(( (100 / "$THREADS") ))
+    METRIC_WORKERS=$(( (100 / "$N_THREADS") ))
+    ENC_WORKERS="${ENC_WORKERS}%"
+    METRIC_WORKERS="${METRIC_WORKERS}%"
 fi
 
 # Set encoding settings
@@ -360,7 +362,7 @@ else
 fi
 
 echo "Calculating Metrics"
-find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" $DISTRIBUTE --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh {} "$INPUT"
+find "$OUTPUT" -name "*.mkv" | parallel -j "$METRIC_WORKERS" $DISTRIBUTE --joblog metrics.log $RESUME --bar scripts/calculate_metrics.sh --distorted {} --reference "$INPUT" --nthreads "$N_THREADS"
 
 echo "Creating CSV"
 echo "Flags, Size, Quality, Bitrate, First Encode Time, Second Encode Time, Decode Time, VMAF" > "$CSV" &&

@@ -131,7 +131,7 @@ while :; do
 done
 
 if [ "$THREADS" -eq -1 ]; then
-    THREADS=$(( 32 < $(nproc) ? 32 : $(nproc) ))
+    THREADS=$(( 4 < $(nproc) ? 4 : $(nproc) ))
 fi
 
 # Original Flags used for CSV
