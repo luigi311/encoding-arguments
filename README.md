@@ -75,3 +75,4 @@ The following packages are required
 -   grep
 -   ffmpeg
 -   python
+-   jq

@@ -1,0 +1,9 @@
+baseline
+tune=film
+tune=animation
+tune=grain
+tune=stillimage
+tune=psnr
+tune=ssim
+tune=fastdecode
+tune=zerolatency
