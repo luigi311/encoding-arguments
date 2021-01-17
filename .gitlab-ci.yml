@@ -28,66 +28,110 @@ default:
     - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
     - tar xf video.tar.gz
 
+.validate:
+  script: &validate |
+    cat stats.csv
+    if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+
+    if [ ! -z "${BDRATE+x}" ]; then
+      cat stats_bd_rates.csv
+      if [ "$(grep -c '^,\|,,\|,$' stats_bd_rates.csv)" -ge 1 ]; then exit 1; fi
+    fi
+
+.tester:
+  script: &tester |
+    if [ ! -z "${SIMPLE+x}" ]; then
+      ./run.sh --input bus_cif.y4m --output output --csv stats.csv --enc ${ENCODER}
+    else
+      BASE="./run.sh --input bus_cif.y4m --output output --csv stats.csv --encworkers 2 --metricworkers 1 --flags arguments/arguments_${ENCODER} --threads 2 --preset 6 --enc ${ENCODER}"
+
+      if [ ! -z "${BDRATE+x}" ]; then
+        QUALITY="--bd steps/steps_${ENCODER}"
+      else
+        QUALITY="--quality 40"
+      fi
+      
+      if [ "$ENCODER" == "aomenc" ]; then
+        QUALITY="$QUALITY --q"
+      elif [ "$ENCODER" == "svt-av1" ]; then
+        QUALITY="$QUALITY --cq"
+      elif [ "$ENCODER" == "x265" ]; then
+        QUALITY="$QUALITY --crf"
+      fi
+
+      $BASE $QUALITY
+    fi
+
+  after_script:
+    - *validate
+
 stages:
   - test
 
 validation-aomenc:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_aomenc --threads 2 --q --quality 40 --preset 6 --enc aomenc
-    - cat stats.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+  variables:
+    ENCODER: "aomenc"
+  extends: .tester
 
 bd_rate-aomenc:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_aomenc --threads 2 --q --bd steps/steps_aomenc --preset 6 --enc aomenc
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
-
+  variables:
+    ENCODER: "aomenc"
+    BDRATE: 1
+  extends: .tester
+  
 simple-aomenc:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps_aomenc --enc aomenc --decode
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+  variables:
+    ENCODER: "aomenc"
+    SIMPLE: 1
+  extends: .tester
 
 validation-svt-av1:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --cq --quality 40 --preset 8 --enc svt-av1
-    - cat stats.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+  variables:
+    ENCODER: "svt-av1"
+  extends: .tester
 
 bd_rate-svt-av1:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_svt-av1 --threads 4 --cq --bd steps/steps_svt-av1 --preset 8 --enc svt-av1
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
-
+  variables:
+    ENCODER: "svt-av1"
+    BDRATE: 1
+  extends: .tester
+  
 simple-svt-av1:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps_svt-av1 --enc svt-av1 --decode
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+  variables:
+    ENCODER: "svt-av1"
+    SIMPLE: 1
+  extends: .tester
 
 validation-x265:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_x265 --threads 2 --crf --quality 40 --preset 0 --enc x265
-    - cat stats.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
+  variables:
+    ENCODER: "x265"
+  extends: .tester
 
 bd_rate-x265:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --encworkers 2 --metricworkers 1 --flags arguments/arguments_x265 --threads 2 --crf --bd steps/steps_x265 --preset 0 --enc x265
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
-
+  variables:
+    ENCODER: "x265"
+    BDRATE: 1
+  extends: .tester
+  
 simple-x265:
-  script:
-    - ./run.sh --input "bus_cif.y4m" --output "output" --csv "stats.csv" --bd steps/steps_x265 --enc x265 --decode
-    - cat stats.csv
-    - cat stats_bd_rates.csv
-    - if [ "$(grep -c '^,\|,,\|,$' stats.csv)" -ge 1 ]; then exit 1; fi
-    
+  variables:
+    ENCODER: "x265"
+    SIMPLE: 1
+  extends: .tester
+
+validation-x264:
+  variables:
+    ENCODER: "x264"
+  extends: .tester
+
+bd_rate-x264:
+  variables:
+    ENCODER: "x264"
+    BDRATE: 1
+  extends: .tester
+  
+simple-x264:
+  variables:
+    ENCODER: "x264"
+    SIMPLE: 1
+  extends: .tester
