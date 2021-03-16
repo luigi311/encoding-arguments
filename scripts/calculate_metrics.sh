@@ -65,6 +65,11 @@ if [ -n "$LOG" ]; then
     die "$LOG"
 fi
 
-VMAF=$(jq '.["pooled_metrics"]["vmaf"]["mean"]' "${FILE}".json)
+# vmaf 2.X
+VMAF=$(jq '.["pooled_metrics"]["vmaf"]["mean"]' "${FILE}.json")
+if [ "$VMAF" == "null" ]; then
+    # vmaf 1.X
+    VMAF=$(jq '.["VMAF score"]' "${FILE}.json")
+fi
 
 echo -n "$VMAF" >> "$FILE.stats"
