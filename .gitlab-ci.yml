@@ -24,6 +24,8 @@ default:
     - head -n 2 arguments/arguments_temp > arguments/arguments_x265
     - mv arguments/arguments_svt-av1 arguments/arguments_temp
     - head -n 2 arguments/arguments_temp > arguments/arguments_svt-av1
+    - mv arguments/arguments_x264 arguments/arguments_temp
+    - head -n 2 arguments/arguments_temp > arguments/arguments_x264
     # Download test videos from SVT-AV1
     - for url in raw.githubusercontent.com/OpenVisualCloud/SVT-AV1-Resources/master randomderp.com; do curl -LO https://$url/video.tar.gz && break; done 
     - tar xf video.tar.gz
